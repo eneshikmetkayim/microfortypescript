@@ -1,0 +1,8 @@
+node_modules/
+*.log
+.DS_Store
+data/
+audit-report.md
+audit-report.json
+coverage/
+.env
