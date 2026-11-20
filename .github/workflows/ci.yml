@@ -1,0 +1,108 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test (${{ matrix.os }}, node ${{ matrix.node }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: ["24.x"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - name: Install
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Test
+        run: node --test tests/ --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=test-results.xml
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.os }}
+          path: test-results.xml
+          if-no-files-found: warn
+      - name: CLI smoke test
+        shell: bash
+        run: |
+          node src/cli.ts version
+          node src/cli.ts init --path microsip.ini --force
+          node src/cli.ts config --ini microsip.ini --json > config.json
+          node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('config.json','utf8'));if(c.accounts.length<1)process.exit(1);console.log('config ok', c.accounts.length, 'accounts')"
+
+  conformance:
+    name: conformance audit
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
+          cache: npm
+      - name: Install
+        run: npm ci
+      - name: Audit
+        run: npm run audit
+      - name: Publish summary
+        if: always()
+        shell: bash
+        run: |
+          if [ -f audit-report.md ]; then
+            cat audit-report.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Upload audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: conformance-audit
+          path: |
+            audit-report.md
+            audit-report.json
+          if-no-files-found: error
+
+  web:
+    name: web panel smoke
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
+          cache: npm
+      - name: Install
+        run: npm ci
+      - name: Start panel
+        shell: bash
+        run: |
+          node src/cli.ts init --path microsip.ini --force
+          nohup node src/cli.ts serve --port 4173 --ini microsip.ini > panel.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4173/api/status > status.json; then break; fi
+            sleep 1
+          done
+          cat status.json
+          curl -fsS http://127.0.0.1:4173/ | grep -q "MicroSIP"
+      - name: Show log
+        if: always()
+        run: cat panel.log || true
