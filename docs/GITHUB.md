@@ -2,9 +2,9 @@
 
 Depo: <https://github.com/eneshikmetkayim/microfortypescript> (public)
 
-Varsayılan branch `main`; `v0.1.0` (SIP çekirdeği + CLI + ilk panel) ve
-`v0.2.0` (operatör konsolu, kurulum sihirbazı, gelen havuzu) etiketleri
-yayınlanmıştır.
+Varsayılan branch `main`; `v0.1.0` (SIP çekirdeği + CLI + ilk panel),
+`v0.2.0` (operatör konsolu, kurulum sihirbazı, gelen havuzu) ve `v0.3.0`
+(gerçek SIP INVITE smoke testi, korumalı `main`) etiketleri yayınlanmıştır.
 
 ## Geliştirme akışı
 
@@ -24,8 +24,8 @@ gh pr create --fill           # CI yeşil olunca merge
 PR ile birleştirilir. Etiketli sürüm:
 
 ```bash
-git tag -a v0.2.1 -m "…"
-git push origin v0.2.1
+git tag -a v0.3.0 -m "…"
+git push origin v0.3.0
 ```
 
 ## CI ne yapıyor?
