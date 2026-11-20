@@ -50,6 +50,12 @@ node src/cli.ts serve --ini microsip.ini     # http://127.0.0.1:4173
 vardır. Gerçek bir çağrı için `[Account1]` bölümünde çalışan bir SIP sunucusu
 gerekir; testler için sunucu gerekmez.
 
+![Operatör konsolu](docs/panel.png)
+
+Panel bilinçli olarak kartsız ve düz: kâğıt zemin, hairline çizgiler, tek sinyal
+rengi (hata/kapat) ve mono rakamlar. Üç kolon geniş ekranda yan yana, dar
+pencerede alt alta akar.
+
 ### CLI
 
 | Komut | Açıklama |

@@ -51,30 +51,54 @@ function formatDuration(seconds) {
 function formatTime(epochSeconds) {
   if (!epochSeconds) return "-";
   const date = new Date(epochSeconds * 1000);
-  return date.toLocaleString("tr-TR", { hour12: false });
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const time = date.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit", hour12: false });
+  return `${day}.${month} ${time}`;
+}
+
+function formatTimeFull(epochSeconds) {
+  if (!epochSeconds) return "-";
+  return new Date(epochSeconds * 1000).toLocaleString("tr-TR", { hour12: false });
 }
 
 function setRegistration(registration) {
   const pill = $("#registration");
   pill.dataset.state = registration.state;
-  pill.textContent =
+  const label =
     registration.state === "registered"
       ? `kayıtlı · ${registration.expires}s`
       : registration.state === "registering"
-        ? "kayıt oluyor…"
+        ? "kayıt oluyor"
         : registration.state === "failed"
-          ? `hata: ${registration.reason ?? ""}`
+          ? "hata"
           : "kayıtsız";
+  pill.title = registration.reason ?? label;
+  const text = pill.querySelector(".reg-text");
+  if (text) text.textContent = label;
+  else pill.textContent = label;
+
+  const line = $("#lineState");
+  if (line) {
+    line.textContent =
+      registration.state === "registered"
+        ? `hat · kayıtlı · ${registration.expires}s`
+        : registration.state === "failed"
+          ? "hat · hata"
+          : registration.state === "registering"
+            ? "hat · kayıt oluyor"
+            : "hat · kayıtsız";
+  }
 }
 
 function renderAccount(status) {
   const account = status.account;
   $("#account").textContent = `${account.username || "-"}@${account.server || "-"} · ${account.transport} · ${account.label}`;
   $("#meta").textContent = [
-    `codec: ${status.settings.audioCodecs}`,
-    `tek mod: ${status.settings.singleMode ? "açık" : "kapalı"}`,
-    `max çağrı: ${status.settings.maxConcurrentCalls}`,
-    account.dialPlan ? `dial plan: ${account.dialPlan}` : "dial plan: yok",
+    `codec    ${status.settings.audioCodecs}`,
+    `tek mod  ${status.settings.singleMode ? "açık" : "kapalı"}`,
+    `max hat  ${status.settings.maxConcurrentCalls}`,
+    `plan     ${account.dialPlan || "yok"}`,
   ].join("\n");
 }
 
@@ -82,7 +106,10 @@ function renderCalls() {
   const calls = [...state.calls.values()];
   $("#callCount").textContent = String(calls.length);
   if (!calls.length) {
-    callsBox.innerHTML = '<p class="empty">Şu anda çağrı yok.</p>';
+    callsBox.innerHTML =
+      '<div class="blank"><strong>Hat boş.</strong><span>Numarayı yazıp <em>Ara</em>\'ya basın. ' +
+      "Gelen çağrı bu şeritte açılır; kayıt satırı çağrı kapandığında geçmişe düşer.</span></div>";
+    syncControls();
     return;
   }
   callsBox.innerHTML = "";
@@ -97,8 +124,8 @@ function renderCalls() {
         <span class="state">${STATE_LABEL[call.state] ?? call.state}</span>
       </header>
       <div class="meta">
-        <span>${call.direction === "in" ? "gelen" : "giden"}</span>
-        <span>${formatDuration(call.duration)}</span>
+        <span>${call.direction === "in" ? "← gelen" : "→ giden"}</span>
+        <span class="dur" data-start="${call.connectTime ?? 0}">${formatDuration(call.duration)}</span>
         ${call.codec ? `<span>${escapeHtml(call.codec)}</span>` : ""}
         ${call.held ? "<span>beklemede</span>" : ""}
         <span>${escapeHtml(call.remoteUri)}</span>
@@ -113,6 +140,20 @@ function renderCalls() {
     });
     callsBox.append(node);
   }
+  syncControls();
+}
+
+function syncControls() {
+  const calls = [...state.calls.values()];
+  const answered = calls.some((call) => call.state === "confirmed");
+  const ringing = calls.some((call) => call.direction === "in" && call.state === "early");
+  const active = calls.length > 0;
+  $("#answer").disabled = !ringing;
+  $("#hangup").disabled = !active;
+  $("#hold").disabled = !answered;
+  $("#transfer").disabled = !answered;
+  $("#hangupAll").disabled = !active;
+  $("#sendDtmf").disabled = !answered;
 }
 
 function escapeHtml(value) {
@@ -134,7 +175,7 @@ function renderHistory(rows) {
         <td>${escapeHtml(row.number)}</td>
         <td>${escapeHtml(row.name)}</td>
         <td>${formatDuration(row.duration)}</td>
-        <td>${formatTime(row.time)}</td>
+        <td title="${formatTimeFull(row.time)}">${formatTime(row.time)}</td>
         <td title="${escapeHtml(row.info)}">${escapeHtml(row.info)}</td>
       </tr>`,
     )
@@ -169,7 +210,10 @@ async function act(action, callId) {
 function appendDigit(digit) {
   numberInput.value += digit;
   numberInput.focus();
+  syncControls();
 }
+
+numberInput.addEventListener("input", syncControls);
 
 $("#pad").addEventListener("click", (event) => {
   const button = event.target.closest("button[data-key]");
@@ -182,7 +226,10 @@ numberInput.addEventListener("keydown", (event) => {
 
 $("#call").addEventListener("click", async () => {
   const number = numberInput.value.trim();
-  if (!number) return;
+  if (!number) {
+    numberInput.focus();
+    return;
+  }
   try {
     const result = await api("/api/dial", { number });
     log(`arama başlatıldı: ${number} (${result.callId})`);
@@ -233,6 +280,7 @@ $("#clearLog").addEventListener("click", () => {
 
 function connectEvents() {
   const source = new EventSource("/api/events");
+  source.addEventListener("open", () => log("olay şeridi bağlandı"));
   source.addEventListener("registration", (event) => {
     const registration = JSON.parse(event.data);
     setRegistration(registration);
@@ -254,7 +302,7 @@ function connectEvents() {
     state.calls.set(call.id, call);
     renderCalls();
     log(`gelen çağrı: ${call.remoteDisplayName || call.remoteUser}`, "hook");
-    document.title = `📞 ${call.remoteDisplayName || call.remoteUser} — MicroSIP`;
+    document.title = `${call.remoteDisplayName || call.remoteUser} · gelen çağrı`;
   });
   source.addEventListener("hook", (event) => {
     const hook = JSON.parse(event.data);
@@ -285,6 +333,17 @@ setInterval(() => {
   }
   if (changed) renderCalls();
 }, 1000);
+
+function tickClock() {
+  const now = new Date();
+  $("#clock").textContent = now.toLocaleTimeString("tr-TR", { hour12: false });
+  $("#metaLine").textContent =
+    state.status && state.status.registration.state === "registered"
+      ? `MicroSIP 3.23.5 · hatta · ${state.status.account.username}`
+      : "MicroSIP 3.23.5 · yerel panel";
+}
+setInterval(tickClock, 1000);
+tickClock();
 
 loadStatus().then(connectEvents).catch((error) => {
   log(`panel yüklenemedi: ${error.message}`, "error");
