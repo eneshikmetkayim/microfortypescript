@@ -78,7 +78,7 @@ for (const entry of matrix.entries) {
 
 const run = spawnSync(
   process.execPath,
-  ["--test", "tests/", "--test-reporter=tap"],
+  ["--test", "tests/**/*.test.ts", "--test-reporter=tap"],
   { cwd: root, encoding: "utf8", timeout: 10 * 60 * 1000 },
 );
 const output = `${run.stdout ?? ""}\n${run.stderr ?? ""}`;
