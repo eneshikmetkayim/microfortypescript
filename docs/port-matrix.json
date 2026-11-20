@@ -1,0 +1,198 @@
+{
+  "microsipVersion": "3.23.5",
+  "generatedFor": "microfortypescript",
+  "entries": [
+    {
+      "id": "sip.transport.udp",
+      "microsip": "pjsua UDP transport (settings.cpp:648 rport, sourcePort)",
+      "module": "src/sip/transport.ts",
+      "tests": ["tests/call.test.ts"],
+      "status": "ported",
+      "notes": "node:dgram; rport handled by the transaction layer target."
+    },
+    {
+      "id": "sip.transport.wss",
+      "microsip": "not present (pjproject TLS/WSS available but unused by the UI)",
+      "module": "src/sip/transport.ts",
+      "tests": [],
+      "status": "adapted",
+      "notes": "RFC 7118 WebSocket transport for modern PBXs and the browser shell."
+    },
+    {
+      "id": "sip.message",
+      "microsip": "pjsip parser/serializer (lib/)",
+      "module": "src/sip/message.ts",
+      "tests": ["tests/message.test.ts"],
+      "status": "ported",
+      "notes": "Compact headers, folding, Content-Length by bytes, response builder."
+    },
+    {
+      "id": "sip.uri",
+      "microsip": "MSIP::ParseSIPURI (global.cpp, SIPURI struct)",
+      "module": "src/sip/uri.ts",
+      "tests": ["tests/uri.test.ts"],
+      "status": "ported",
+      "notes": "Also exports MicroSIP urlencode() byte-for-byte."
+    },
+    {
+      "id": "sip.digest",
+      "microsip": "pjsip auth (pjsua_acc) / msip_md5sum",
+      "module": "src/sip/digest.ts",
+      "tests": ["tests/digest.test.ts", "tests/md5.test.ts"],
+      "status": "ported",
+      "notes": "MD5, MD5-sess, qop=auth, authID and 401/407 replay."
+    },
+    {
+      "id": "sip.registration",
+      "microsip": "pjsua_acc registration, registerRefresh/keepAlive",
+      "module": "src/sip/registration.ts",
+      "tests": ["tests/registration.test.ts"],
+      "status": "ported",
+      "notes": "Refresh at 90% of expires, 423 Min-Expires, unregister with expires=0."
+    },
+    {
+      "id": "sip.transactions",
+      "microsip": "pjsip transaction layer",
+      "module": "src/sip/transaction.ts",
+      "tests": ["tests/transaction.test.ts"],
+      "status": "ported",
+      "notes": "Timers A/B/E/F, 408, auto-ACK for non-2xx, CANCEL shares the branch."
+    },
+    {
+      "id": "sip.call",
+      "microsip": "mainDlg.cpp onCallState + MessagesDlg actions",
+      "module": "src/sip/call.ts",
+      "tests": ["tests/call.test.ts"],
+      "status": "ported",
+      "notes": "States calling/early/connecting/confirmed/disconnected, hold, INFO DTMF, REFER."
+    },
+    {
+      "id": "sip.sdp",
+      "microsip": "pjmedia SDP negotiation, define.h codec defaults",
+      "module": "src/sip/sdp.ts",
+      "tests": ["tests/sdp.test.ts"],
+      "status": "ported",
+      "notes": "PCMA/PCMU first, rtpmap/fmtp, telephone-event, offer/answer intersection."
+    },
+    {
+      "id": "media.rtp",
+      "microsip": "pjmedia audio devices, echo cancellation, VAD, recording",
+      "module": null,
+      "tests": [],
+      "status": "not-portable",
+      "notes": "Native audio I/O has no Node equivalent; the web shell is the planned media path (WebRTC)."
+    },
+    {
+      "id": "media.video",
+      "microsip": "pjmedia video (H264/H263/VP8/VP9, preview)",
+      "module": null,
+      "tests": [],
+      "status": "not-portable",
+      "notes": "Requires WebRTC or native codecs; out of scope for the headless port."
+    },
+    {
+      "id": "core.settings",
+      "microsip": "settings.cpp / global.cpp SettingsLoad",
+      "module": "src/core/settings.ts",
+      "tests": ["tests/settings.test.ts"],
+      "status": "ported",
+      "notes": "Same ini keys, defaults from define.h, unknown keys preserved."
+    },
+    {
+      "id": "core.urlmask",
+      "microsip": "URLMask (global.cpp:1245)",
+      "module": "src/core/urlmask.ts",
+      "tests": ["tests/urlmask.test.ts"],
+      "status": "ported",
+      "notes": "Exact replacement order including the callerid precedence quirk."
+    },
+    {
+      "id": "core.dialing",
+      "microsip": "FormatNumber/GetSIPURI/SanitizeNumber (global.cpp)",
+      "module": "src/core/dialing.ts",
+      "tests": ["tests/dialing.test.ts"],
+      "status": "ported",
+      "notes": "Dialing prefix, PSTN detection, dial plan x/./[..]/<a:b>, blocked numbers."
+    },
+    {
+      "id": "core.commands",
+      "microsip": "CommandLine + cmd* hooks + WM_COPYDATA (mainDlg.cpp:4410)",
+      "module": "src/core/commands.ts",
+      "tests": ["tests/ini.test.ts"],
+      "status": "ported",
+      "notes": "msip: verbs, tel:/sip:/callto:/dialpad:/dial:, /account: params, hook envelopes."
+    },
+    {
+      "id": "core.calllog",
+      "microsip": "Data/Database.cpp InitCalls + CallsRepository",
+      "module": "src/core/calllog.ts",
+      "tests": ["tests/calllog.test.ts"],
+      "status": "ported",
+      "notes": "Identical schema, unique callId index, 1000-row trim."
+    },
+    {
+      "id": "core.contacts",
+      "microsip": "Data/ContactsRepository.cpp + import/export dialogs",
+      "module": "src/core/contacts.ts",
+      "tests": ["tests/contacts.test.ts"],
+      "status": "ported",
+      "notes": "number/name/info table, CSV import/export, nameFor() lookup."
+    },
+    {
+      "id": "app.softphone",
+      "microsip": "CmainDlg orchestration (accounts, calls, history, hooks)",
+      "module": "src/core/softphone.ts",
+      "tests": ["tests/softphone.test.ts"],
+      "status": "ported",
+      "notes": "One active account, call log writes, missed detection, cmd* hooks, msip: verbs."
+    },
+    {
+      "id": "app.ui",
+      "microsip": "MFC dialogs (mainDlg, MessagesDlg, Calls, Contacts, Settings)",
+      "module": "web/index.html",
+      "tests": [],
+      "status": "adapted",
+      "notes": "Browser control panel with dial pad, active calls, history and hook log."
+    },
+    {
+      "id": "app.tray",
+      "microsip": "tray icon, hotkeys, Windows notifications, jumplist, startup",
+      "module": null,
+      "tests": [],
+      "status": "not-portable",
+      "notes": "Windows shell integration; the web shell is the replacement."
+    },
+    {
+      "id": "app.messaging",
+      "microsip": "MessagesDlg SIP MESSAGE + SMS archive (/api/telefon in loki-crm)",
+      "module": "src/sip/stack.ts",
+      "tests": ["tests/call.test.ts"],
+      "status": "adapted",
+      "notes": "Stack-level MESSAGE send/receive and events; no chat UI yet."
+    },
+    {
+      "id": "net.dns",
+      "microsip": "pjsua DNS SRV/NAPTR resolution, dnsSrvNameservers",
+      "module": null,
+      "tests": [],
+      "status": "pending",
+      "notes": "A-record/host resolution only today; SRV/NAPTR lookup is the next networking task."
+    },
+    {
+      "id": "app.presence",
+      "microsip": "presence/BLF subscriptions, call pickup feature codes",
+      "module": null,
+      "tests": [],
+      "status": "pending",
+      "notes": "Not started; ARI/AMI integration is the planned path."
+    },
+    {
+      "id": "app.recording",
+      "microsip": "recordingPath/recordingFormat, autoRecording, mp3 (LAME)",
+      "module": null,
+      "tests": [],
+      "status": "not-portable",
+      "notes": "Depends on the media path; server-side recording belongs to the PBX."
+    }
+  ]
+}
