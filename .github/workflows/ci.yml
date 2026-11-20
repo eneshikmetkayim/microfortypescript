@@ -33,7 +33,7 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
       - name: Test
-        run: node --test tests/ --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=test-results.xml
+        run: node --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=test-results.xml --test tests/
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
