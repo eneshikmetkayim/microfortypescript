@@ -56,7 +56,7 @@ interface CallTracking {
 export class Softphone {
   readonly events = new Emitter<SoftphoneEvents>();
   readonly settings: MicroSipSettings;
-  readonly account: MicroSipAccount;
+  private activeAccount: MicroSipAccount;
   readonly callLog: CallLog;
   readonly contacts: Contacts;
   private stack: SipStack | null = null;
@@ -70,7 +70,7 @@ export class Softphone {
   constructor(options: SoftphoneOptions) {
     this.options = options;
     this.settings = options.settings;
-    this.account =
+    this.activeAccount =
       this.settings.accounts.find((candidate) => candidate.id === (options.accountId ?? this.settings.accountId)) ??
       this.settings.account;
     this.timers = options.timers ?? systemTimers;
@@ -85,6 +85,10 @@ export class Softphone {
       return new WebSocketTransport(`${scheme}://${this.account.server}`, { protocols: ["sip"] });
     }
     return new UdpTransport(this.settings.sourcePort, "0.0.0.0");
+  }
+
+  get account(): MicroSipAccount {
+    return this.activeAccount;
   }
 
   get registration(): RegistrationSnapshot {
@@ -158,6 +162,9 @@ export class Softphone {
   async restart(): Promise<void> {
     const wasStarted = this.started;
     await this.stop();
+    this.activeAccount =
+      this.settings.accounts.find((candidate) => candidate.id === this.settings.accountId) ??
+      this.settings.account;
     this.transport = this.options.transport ?? this.createTransport();
     if (wasStarted) await this.start();
   }

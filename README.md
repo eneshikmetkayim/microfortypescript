@@ -52,14 +52,18 @@ gerekir; testler için sunucu gerekmez.
 
 ![Operatör konsolu](docs/panel.png)
 
+![Kurulum sihirbazı](docs/panel-setup.png)
+
 Panel bilinçli olarak kartsız ve düz: kâğıt zemin, hairline çizgiler, tek sinyal
 rengi (hata/kapat) ve mono rakamlar. Üç kolon geniş ekranda yan yana, dar
 pencerede alt alta akar.
 
-- **Kurulum** (sağ üst): sunucu, kullanıcı, parola, taşıma, görünen ad, dial plan
-  ve eşzamanlı çağrı sayısını düzenler; kaydedince `microsip.ini` yerinde
-  güncellenir ve bağlantı alanları değiştiyse hat yeniden bağlanır. Parola hiçbir
-  yanıtta dönmez.
+- **Kurulum sihirbazı** (sağ üst; hat boşsa ilk açılışta kendiliğinden açılır):
+  1) hesap adı, sunucu, dial plan ve taşıma (udp/tcp/tls/ws/wss), 2) SIP kimliği
+  ve eşzamanlı çağrı sayısı, 3) kullanıcı yönetimi. Kullanıcı eklenip silinebilir,
+  biri etkin seçilir; kaydedince `microsip.ini` güncellenir ve bağlantı alanları
+  değiştiyse hat yeniden bağlanır. Parola hiçbir yanıtta dönmez, boş bırakılırsa
+  mevcut değer korunur.
 - **Gelen havuzu**: çalan çağrılar başlangıç sırasına göre bekler; her satırdan
   cevaplanır veya 486 ile reddedilir. Yanıtlanan çağrı “Hatte” bölümüne, süresiyle
   birlikte geçer.

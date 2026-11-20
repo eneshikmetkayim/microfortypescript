@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>microfort · operatör konsolu</title>
     <link rel="stylesheet" href="/style.css" />
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2314110e'/%3E%3Crect x='6' y='7' width='4' height='18' fill='%23f5f2ec'/%3E%3Crect x='14' y='7' width='4' height='11' fill='%23f5f2ec'/%3E%3Crect x='22' y='7' width='4' height='18' fill='%23d7462a'/%3E%3C/svg%3E" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2314110e'/%3E%3Crect x='6' y='7' width='4' height='18' fill='%23f5f2ec'/%3E%3Crect x='14' y='7' width='4' height='11' fill='%23f5f2ec'/%3E%3Crect x='22' y='7' width='4' height='18' fill='%23d7452a'/%3E%3C/svg%3E" />
   </head>
   <body>
     <header class="masthead">
@@ -43,9 +43,9 @@
           <button data-key="7"><b>7</b><small>PQRS</small></button>
           <button data-key="8"><b>8</b><small>TUV</small></button>
           <button data-key="9"><b>9</b><small>WXYZ</small></button>
-          <button data-key="*"><b>✳</b><small> </small></button>
+          <button data-key="*"><b>✳</b><small> </small></button>
           <button data-key="0"><b>0</b><small>+</small></button>
-          <button data-key="#"><b>#</b><small> </small></button>
+          <button data-key="#"><b>#</b><small> </small></button>
         </div>
 
         <div class="dial-actions">
@@ -87,8 +87,8 @@
         <div id="calls" class="calls">
           <div class="blank">
             <strong>Hat boş.</strong>
-            <span>Numarayı yazıp <em>Ara</em>'ya basın. Gelen çağrı bu şeritte açılır; kayıt
-            satırı çağrı kapandığında geçmişe düşer.</span>
+            <span>Numarayı yazıp <em>Ara</em>'ya basın. Çalan çağrılar önce havuza düşer; yanıtlanan
+            çağrı burada süreyle açılır.</span>
           </div>
         </div>
 
@@ -133,33 +133,73 @@
     </footer>
 
     <dialog id="setup" class="setup" aria-labelledby="setup-title">
-      <form id="setupForm">
+      <form id="setupForm" class="wizard" novalidate>
         <header class="setup-head">
-          <h2 id="setup-title">Hat kurulumu</h2>
+          <div>
+            <h2 id="setup-title">Hat kurulumu</h2>
+            <p class="setup-step" id="setupStepLabel">Adım 1 / 3 · Hesap</p>
+          </div>
           <button type="button" class="link" id="setupClose">Kapat</button>
         </header>
-        <div class="setup-grid">
-          <label>Hesap adı<input name="label" autocomplete="off" /></label>
-          <label>Sunucu<input name="server" autocomplete="off" placeholder="pbx.local" required /></label>
-          <label>Kullanıcı<input name="username" autocomplete="off" required /></label>
-          <label>Parola<input name="password" type="password" autocomplete="new-password" /></label>
-          <label>Görünen ad<input name="displayName" autocomplete="off" /></label>
-          <label>Taşıma
-            <select name="transport">
-              <option value="udp">udp</option>
-              <option value="tcp">tcp</option>
-              <option value="tls">tls</option>
-              <option value="ws">ws</option>
-              <option value="wss">wss</option>
-            </select>
-          </label>
-          <label class="wide">Dial plan<input name="dialPlan" autocomplete="off" placeholder="ör. 9xx · boş = filtre yok" /></label>
-          <label>Aynı anda çağrı<input name="maxConcurrentCalls" type="number" min="1" max="32" /></label>
-        </div>
+
+        <ol class="wizard-steps" id="wizardSteps">
+          <li data-step="1" aria-current="step"><b>01</b>Hesap</li>
+          <li data-step="2"><b>02</b>Kimlik</li>
+          <li data-step="3"><b>03</b>Kullanıcılar</li>
+        </ol>
+
+        <section class="wizard-page" data-page="1">
+          <div class="setup-grid">
+            <label class="wide">Hesap adı<input name="label" autocomplete="off" placeholder="Ofis" /></label>
+            <label>Sunucu<input name="server" autocomplete="off" placeholder="pbx.local" required /></label>
+            <label>Dial plan<input name="dialPlan" autocomplete="off" placeholder="9xx · boş = filtre yok" /></label>
+            <fieldset class="transport wide">
+              <legend>Taşıma</legend>
+              <div class="transport-options">
+                <label><input type="radio" name="transport" value="udp" checked /><span>udp</span></label>
+                <label><input type="radio" name="transport" value="tcp" /><span>tcp</span></label>
+                <label><input type="radio" name="transport" value="tls" /><span>tls</span></label>
+                <label><input type="radio" name="transport" value="ws" /><span>ws</span></label>
+                <label><input type="radio" name="transport" value="wss" /><span>wss</span></label>
+              </div>
+            </fieldset>
+          </div>
+        </section>
+
+        <section class="wizard-page" data-page="2" hidden>
+          <div class="setup-grid">
+            <label>Kullanıcı<input name="username" autocomplete="off" required /></label>
+            <label>Parola<input name="password" type="password" autocomplete="new-password" /></label>
+            <label>Görünen ad<input name="displayName" autocomplete="off" /></label>
+            <label>Aynı anda çağrı<input name="maxConcurrentCalls" type="number" min="1" max="32" /></label>
+          </div>
+          <p class="wizard-lead">Bu kullanıcı hattı kayıt eder ve gelen çağrıları alır. Parola boş
+          bırakılırsa ini dosyasındaki mevcut değer korunur.</p>
+        </section>
+
+        <section class="wizard-page" data-page="3" hidden>
+          <p class="wizard-lead">Kayıtlı SIP kullanıcıları. Etkin kullanıcı hatta bağlanır;
+          diğerleri ini dosyasında bekler. En az bir kullanıcı gerekir.</p>
+          <div id="accountList" class="account-list"></div>
+          <div class="account-add">
+            <span class="section-label"><span>Yeni kullanıcı</span></span>
+            <div class="account-add-grid">
+              <label>Etiket<input name="newLabel" autocomplete="off" placeholder="Destek" /></label>
+              <label>Kullanıcı<input name="newUsername" autocomplete="off" /></label>
+              <label>Sunucu<input name="newServer" autocomplete="off" placeholder="pbx.local" /></label>
+              <label>Parola<input name="newPassword" type="password" autocomplete="new-password" /></label>
+            </div>
+            <button type="button" id="addAccount" class="btn btn-quiet">Kullanıcı ekle</button>
+          </div>
+        </section>
+
         <p class="setup-note" id="setupNote">Kaydedince microsip.ini güncellenir.</p>
+
         <footer class="setup-actions">
-          <button type="button" class="btn btn-quiet" id="setupCancel">Vazgeç</button>
-          <button type="submit" class="btn btn-solid" id="setupSave">Kaydet ve bağlan</button>
+          <button type="button" class="btn btn-quiet" id="wizardBack" hidden>Geri</button>
+          <span class="setup-spacer"></span>
+          <button type="button" class="btn btn-solid" id="wizardNext">İleri</button>
+          <button type="submit" class="btn btn-solid" id="setupSave" hidden>Kaydet ve bağlan</button>
         </footer>
       </form>
     </dialog>

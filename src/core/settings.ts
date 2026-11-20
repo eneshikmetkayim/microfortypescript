@@ -142,6 +142,44 @@ function accountFromIni(ini: IniDocument, id: number): MicroSipAccount {
   };
 }
 
+/** A fresh `[AccountN]` with the same defaults an empty ini section gets. */
+export function createAccount(id: number, fields: Partial<MicroSipAccount> = {}): MicroSipAccount {
+  return {
+    id,
+    label: "",
+    server: "",
+    proxy: "",
+    domain: "",
+    username: "",
+    password: "",
+    authId: "",
+    displayName: "",
+    dialingPrefix: "",
+    dialPlan: "",
+    hideCid: false,
+    voicemailNumber: "",
+    transport: "udp",
+    registerRefresh: 300,
+    keepAlive: 15,
+    srtp: 0,
+    publicAddr: "",
+    publish: false,
+    allowRewrite: false,
+    ice: false,
+    disableSessionTimer: false,
+    autoAnswer: "button",
+    autoAnswerDelay: 0,
+    autoAnswerNumber: "",
+    autoAnswerCalls: "",
+    forwarding: "",
+    forwardingNumber: "",
+    forwardingDelay: 0,
+    denyIncoming: "button",
+    localDTMF: true,
+    ...fields,
+  };
+}
+
 export function loadMicroSipSettings(text: string): MicroSipSettings {
   const ini = IniDocument.parse(text);
   const accountId = ini.getNumber("Settings", "accountId", 1);
@@ -261,6 +299,7 @@ export function saveMicroSipSettings(settings: MicroSipSettings): string {
   ini.set("Settings", "singleMode", settings.singleMode ? 1 : 0);
   ini.set("Settings", "audioCodecs", settings.audioCodecs);
   ini.set("Settings", "maxConcurrentCalls", settings.maxConcurrentCalls);
+  ini.set("Settings", "localDTMF", settings.localDTMF ? 1 : 0);
   ini.set("Settings", "cmdOutgoingCall", settings.cmdOutgoingCall || undefined);
   ini.set("Settings", "cmdIncomingCall", settings.cmdIncomingCall || undefined);
   ini.set("Settings", "cmdCallRing", settings.cmdCallRing || undefined);
