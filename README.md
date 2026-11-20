@@ -38,7 +38,7 @@ Next.js içine taşınamaz. Bu repo, MicroSIP'in **davranışını** taşır:
 ```bash
 npm ci
 npm run typecheck
-npm test          # 95+ test, ~0.5 sn
+npm test          # 99+ test, ~2 sn
 npm run audit     # conformance raporu (audit-report.md)
 
 node src/cli.ts init --path microsip.ini     # örnek ayar dosyası

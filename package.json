@@ -1,8 +1,13 @@
 {
   "name": "microfortypescript",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "MicroSIP 3.23.5 logic layer ported to TypeScript (SIP stack, dialing, URL masks, call log) with 1:1 parity tests.",
+  "license": "GPL-2.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eneshikmetkayim/microfortypescript.git"
+  },
   "type": "module",
   "engines": {
     "node": ">=24"
