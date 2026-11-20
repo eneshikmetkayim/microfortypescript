@@ -75,6 +75,10 @@ test("sender emits marker, rising timestamps and a repeated end bit", async () =
     assert.equal(last.readUInt16BE(14), 320);
     assert.equal(last.readUInt32BE(8), 42);
 
+    // RFC 4733 §2.5.1: every packet of one event keeps the event's timestamp.
+    const timestamps = packets.map((packet) => packet.readUInt32BE(4));
+    assert.equal(new Set(timestamps).size, 1);
+
     const sequences = packets.map((packet) => packet.readUInt16BE(2));
     for (let index = 1; index < sequences.length; index++) {
       assert.equal((sequences[index] as number) & 0xffff, ((sequences[index - 1] as number) + 1) & 0xffff);

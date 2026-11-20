@@ -89,7 +89,14 @@ pencerede alt alta akar.
 SDP'de `telephone-event` anlaşıldıysa RFC 4733 RTP olayları, anlaşılmadıysa SIP
 INFO; `1` yalnızca INFO; `2` RFC 4733 tercih edilir, gönderilemezse INFO'ya
 düşer. RFC 4733 paketleri 20 ms aralıkla gider: ilk pakette işaret biti, sonda
-üç bitiş paketi (pjsua davranışı).
+üç bitiş paketi (pjsua davranışı). Bir olayın bütün paketleri aynı başlangıç
+timestamp'ini taşır (RFC 4733 §2.5.1).
+
+Uçtan uca DTMF santral gerektirmeden doğrulanır: `tests/helpers/echo-uas.ts`
+gerçek loopback UDP soketleri üzerinden INVITE'ı yanıtlar, ses RTP'sini geri
+yansıtır (kendi sesini duyduğun echo hattı gibi) ve RFC 4733 olaylarını çözüp
+rakamları raporlar. `tests/dtmf-e2e.test.ts` bu yolu INVITE → 200 OK → ACK →
+RTP olayları → BYE olarak uçtan uca sınar.
 
 ## Kapsam ve doğrulama
 

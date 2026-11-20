@@ -82,9 +82,15 @@ const run = spawnSync(
   { cwd: root, encoding: "utf8", timeout: 10 * 60 * 1000 },
 );
 const output = `${run.stdout ?? ""}\n${run.stderr ?? ""}`;
-const pass = Number(/# pass (\d+)/.exec(output)?.[1] ?? 0);
-const fail = Number(/# fail (\d+)/.exec(output)?.[1] ?? 0);
-const testsTotal = Number(/# tests (\d+)/.exec(output)?.[1] ?? pass + fail);
+// Node >= 22 prints the summary as `# pass 12` (TAP) or `ℹ pass 12` (spec).
+const count = (label: string): number => {
+  const match = new RegExp(`(?:^|\\n)[#ℹ]\\s*${label}\\s+(\\d+)`).exec(output);
+  return Number(match?.[1] ?? 0);
+};
+const pass = count("pass");
+const fail = count("fail");
+const declared = count("tests");
+const testsTotal = declared || pass + fail;
 
 if (run.status !== 0 || fail > 0) {
   problems.push(`test suite failed (${fail} failing of ${testsTotal})`);
