@@ -450,6 +450,11 @@ export class Call {
 
   async hangup(): Promise<void> {
     if (!this.isActive) return;
+    // Hanging up a ringing inbound call is a decline (486), not a CANCEL.
+    if (this.direction === "in" && this.state !== "confirmed") {
+      this.decline(486);
+      return;
+    }
     if (this.state === "confirmed") {
       this.localCSeq += 1;
       const bye = SipMessage.request("BYE", this.dialogRequestUri());
