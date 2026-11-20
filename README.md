@@ -1,8 +1,8 @@
 # microfortypescript
 
-MicroSIP **3.23.5**'in mantık katmanının sıfırdan **TypeScript** uyarlaması. Ayrı bir
-projedir: `loki-crm-next` içine gömülü değildir, çalışması için bir santral
-(PBX) gerektirmez ve testleri tamamen kendi içinde (loopback SIP) döner.
+MicroSIP **3.23.5**'in mantık katmanının sıfırdan **TypeScript** uyarlaması. Tek
+başına çalışan bağımsız bir projedir: çalışması için bir santral (PBX) gerekmez
+ve testleri tamamen kendi içinde (loopback SIP) döner.
 
 [![CI](https://github.com/eneshikmetkayim/microfortypescript/actions/workflows/ci.yml/badge.svg)](https://github.com/eneshikmetkayim/microfortypescript/actions/workflows/ci.yml)
 
@@ -16,10 +16,11 @@ SIP katmanı            Uygulama katmanı                 Arayüzler
 └────────────────┘     └──────────────────────┘
 ```
 
-## Neden ayrı proje?
+## Neden TypeScript?
 
-MicroSIP Windows'a bağlı bir MFC/pjproject uygulamasıdır (GPL v2). Doğrudan
-Next.js içine taşınamaz. Bu repo, MicroSIP'in **davranışını** taşır:
+MicroSIP Windows'a bağlı bir MFC/pjproject uygulamasıdır (GPL v2). Windows
+bağımlılıkları olmadan aynı davranışı sunmak için bu repo MicroSIP'in
+**davranışını** TypeScript'e taşır:
 
 - SIP protokolü (mesaj ayrıştırma, digest, transaction zamanlayıcıları,
   REGISTER, çağrı durum makinesi, SDP, DTMF, REFER)

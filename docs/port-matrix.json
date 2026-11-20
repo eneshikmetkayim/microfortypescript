@@ -164,7 +164,7 @@
     },
     {
       "id": "app.messaging",
-      "microsip": "MessagesDlg SIP MESSAGE + SMS archive (/api/telefon in loki-crm)",
+      "microsip": "MessagesDlg SIP MESSAGE + SMS archive",
       "module": "src/sip/stack.ts",
       "tests": ["tests/call.test.ts"],
       "status": "adapted",
