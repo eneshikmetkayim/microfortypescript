@@ -43,6 +43,8 @@ export interface SoftphoneOptions {
   /** Executes cmd* hooks; the CLI/web shell logs or spawns them. */
   onHook?: (hook: HookInvocation) => void;
   autoAnswer?: boolean;
+  /** false returns as soon as the transport is up; registration continues. */
+  awaitRegistration?: boolean;
 }
 
 interface CallTracking {
@@ -132,7 +134,14 @@ export class Softphone {
     this.stack.events.on("incomingCall", (call) => this.trackIncoming(call));
 
     this.started = true;
-    await this.stack.start({ register: Boolean(this.account.server) });
+    const registration = this.stack.start({ register: Boolean(this.account.server) });
+    if (this.options.awaitRegistration === false) {
+      void registration.catch((error: unknown) =>
+        this.events.emit("error", error instanceof Error ? error : new Error(String(error))),
+      );
+      return;
+    }
+    await registration;
   }
 
   async stop(): Promise<void> {
