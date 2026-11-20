@@ -83,6 +83,14 @@ pencerede alt alta akar.
 | `serve [--port 4173]` | yerel web kontrol paneli |
 | `init [--path microsip.ini]` | başlangıç ini dosyası üret |
 
+### DTMF
+
+`[Settings] dtmfMethod` tuş takımının nasıl gittiğini seçer: `0` (varsayılan)
+SDP'de `telephone-event` anlaşıldıysa RFC 4733 RTP olayları, anlaşılmadıysa SIP
+INFO; `1` yalnızca INFO; `2` RFC 4733 tercih edilir, gönderilemezse INFO'ya
+düşer. RFC 4733 paketleri 20 ms aralıkla gider: ilk pakette işaret biti, sonda
+üç bitiş paketi (pjsua davranışı).
+
 ## Kapsam ve doğrulama
 
 Her uyarlanan modül, MicroSIP kaynağındaki karşılığı ve testiyle

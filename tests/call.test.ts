@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { SipStack } from "../src/sip/stack.ts";
 import { createLoopbackPair } from "../src/sip/transport.ts";
 import { SipMessage } from "../src/sip/message.ts";
+import { createSocket } from "node:dgram";
 import type { Call } from "../src/sip/call.ts";
 import { answerSdp, ScriptedUas, OFFER_SDP } from "./helpers/uas.ts";
 
@@ -28,8 +29,11 @@ async function stopStack(stack: SipStack, flush: () => void): Promise<void> {
   await stopping;
 }
 
-function setup(options: { autoAnswer?: boolean; reject?: number } = {}) {
+function setup(
+  options: { autoAnswer?: boolean; reject?: number; dtmfMethod?: number; answerPort?: number } = {},
+) {
   const autoAnswer = options.autoAnswer ?? true;
+  const answerPort = options.answerPort ?? 4200;
   const loop = createLoopbackPair(["alice.invalid", "bob.invalid"]);
   const uas = new ScriptedUas(loop.b);
   const stack = new SipStack({
@@ -42,6 +46,7 @@ function setup(options: { autoAnswer?: boolean; reject?: number } = {}) {
       displayName: "Alice",
       transport: "udp",
       audioCodecs: ["PCMA/8000/1", "PCMU/8000/1"],
+      ...(options.dtmfMethod === undefined ? {} : { dtmfMethod: options.dtmfMethod }),
     },
     transport: loop.a,
     localAddress: "alice.invalid:5060",
@@ -58,7 +63,7 @@ function setup(options: { autoAnswer?: boolean; reject?: number } = {}) {
       }
       if (!autoAnswer) return;
       u.reply(message, 180, { from });
-      u.reply(message, 200, { sdp: answerSdp(), from });
+      u.reply(message, 200, { sdp: answerSdp(answerPort), from });
       return;
     }
     if (message.method === "INVITE") {
@@ -223,8 +228,8 @@ test("declining an incoming call sends 486", async () => {
   await stopStack(stack, flush);
 });
 
-test("hold re-INVITEs with sendonly, DTMF uses INFO, and transfer sends REFER", async () => {
-  const { flush, uas, stack } = setup();
+test("hold re-INVITEs with sendonly, DTMF uses INFO when configured, and transfer sends REFER", async () => {
+  const { flush, uas, stack } = setup({ dtmfMethod: 1 });
   const call = await stack.dial("1002");
   await pump(flush, () => call.state === "confirmed");
 
@@ -252,6 +257,36 @@ test("hold re-INVITEs with sendonly, DTMF uses INFO, and transfer sends REFER", 
   assert.equal(refer?.header("refer-to"), "<sip:1003@bob.invalid>");
 
   await stopStack(stack, flush);
+});
+
+test("DTMF goes out as RFC 4733 events when telephone-event is negotiated", async () => {
+  const listener = createSocket("udp4");
+  const packets: Buffer[] = [];
+  listener.on("message", (buffer) => packets.push(buffer));
+  await new Promise<void>((resolve) => listener.bind(0, "127.0.0.1", resolve));
+  const answerPort = listener.address().port;
+
+  const { flush, uas, stack } = setup({ answerPort });
+  try {
+    const call = await stack.dial("1002");
+    await pump(flush, () => call.state === "confirmed");
+
+    await call.sendDtmf("5");
+
+    assert.ok(packets.length >= 4, `expected RFC 4733 packets, got ${packets.length}`);
+    const first = packets[0] as Buffer;
+    assert.equal(first.readUInt8(0) >> 6, 2); // RTP version
+    assert.equal(first.readUInt8(1) & 0x7f, 101); // negotiated telephone-event payload
+    assert.equal(first.readUInt8(1) & 0x80, 0x80); // marker on the first packet of the event
+    assert.equal(first.readUInt8(12), 5); // event code for digit 5
+    const last = packets[packets.length - 1] as Buffer;
+    assert.equal(last.readUInt8(12), 5);
+    assert.equal(last.readUInt8(13) & 0x80, 0x80); // end bit
+    assert.equal(uas.requestsOf("INFO").length, 0);
+  } finally {
+    listener.close();
+    await stopStack(stack, flush);
+  }
 });
 
 test("incoming INFO raises DTMF events", async () => {
