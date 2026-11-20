@@ -1,27 +1,31 @@
 # GitHub deposu ve doğrulama
 
-Hedef depo: `git@github.com:eneshikmetkayim/microfortypescript.git`
+Depo: <https://github.com/eneshikmetkayim/microfortypescript> (public)
 
-## İlk push
+Varsayılan branch `main`; `v0.1.0` (SIP çekirdeği + CLI + ilk panel) ve
+`v0.2.0` (operatör konsolu, kurulum sihirbazı, gelen havuzu) etiketleri
+yayınlanmıştır.
 
-Yerel repo hazır ve adım adım commit'lenmiştir. Depoyu bağlayıp göndermek için:
-
-```bash
-git remote add origin git@github.com:eneshikmetkayim/microfortypescript.git
-git branch -M main
-git push -u origin main
-```
-
-SSH anahtarı yoksa:
+## Geliştirme akışı
 
 ```bash
-gh auth login
-gh repo view eneshikmetkayim/microfortypescript
-# gerekirse:
-gh repo create eneshikmetkayim/microfortypescript --private --source=. --remote=origin --push
+npm ci
+npm run ci                     # typecheck + testler + audit
+
+git switch -c konu-basligi
+# değişiklikler…
+npm run ci
+git commit -m "feat: …"
+git push -u origin konu-basligi
+gh pr create --fill           # CI yeşil olunca merge
 ```
 
-Bu adımlar bu çalışma sırasında **çalıştırılmadı**; push kullanıcıya aittir.
+Doğrudan `main`e push da CI'ı tetikler. Etiketli sürüm:
+
+```bash
+git tag -a v0.2.1 -m "…"
+git push origin v0.2.1
+```
 
 ## CI ne yapıyor?
 
@@ -37,13 +41,13 @@ Yeşil `conformance` işi "port edilen her modülün kaynağı ve testi var, tes
 geçiyor" anlamına gelir; medya/arayüz gibi taşınamayan başlıklar matriste
 `not-portable` olarak açıkça işaretlidir.
 
-## Önerilen depo ayarları
+## Depo ayarları
 
-- **Branch protection** (`main`): `test (ubuntu-latest, node 24.x)`,
-  `test (windows-latest, node 24.x)`, `conformance audit`, `web panel smoke`
-  zorunlu statüler.
-- **Actions → General**: "Allow all actions" yeterli; ek secret gerekmez.
-- **Artifacts**: `conformance-audit` (rapor) ve `test-results-*` (JUnit).
+- **Branches → default:** `main`.
+- **Actions → General:** "Allow all actions" yeterli; ek secret gerekmez.
+- **Artifacts:** `conformance-audit` (rapor) ve `test-results-*` (JUnit).
+- Branch protection isteğe bağlıdır; zorunlu tutulacaksa `test` (ubuntu +
+  windows), `conformance audit` ve `web panel smoke` statüleri seçilebilir.
 
 ## Yerelde aynı kontroller
 
@@ -57,7 +61,7 @@ node src/cli.ts serve --ini microsip.ini   # paneli elle dene
 
 ## Sırlar
 
-Depoda sır yoktur. `microsip.ini` gerçek parola içeriyorsa commit'lenmemelidir;
-`.gitignore` yalnızca çalışma zamanı çıktılarını (`data/`, `audit-report.*`,
-`test-results.xml`) dışlar. Üretim kimlik bilgileri için ayrı, izlenmeyen bir
-dosya kullanın ve CI'ya eklemeyin.
+Depoda sır yoktur. Gerçek kimlik bilgileri içeren `microsip.ini`, `.env`,
+`data/`, `tmp/` ve panel çıktıları `.gitignore` ile dışlanır; yalnızca
+`microsip.example.ini` örneği izlenir. Üretim kimlik bilgilerini ayrı, izlenmeyen
+bir dosyada tutun ve CI'ya eklemeyin.
