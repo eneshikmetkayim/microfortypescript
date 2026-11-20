@@ -20,7 +20,8 @@ git push -u origin konu-basligi
 gh pr create --fill           # CI yeşil olunca merge
 ```
 
-Doğrudan `main`e push da CI'ı tetikler. Etiketli sürüm:
+`main` korumalıdır: doğrudan push (adminler dahil) reddedilir, değişiklikler
+PR ile birleştirilir. Etiketli sürüm:
 
 ```bash
 git tag -a v0.2.1 -m "…"
@@ -46,10 +47,10 @@ geçiyor" anlamına gelir; medya/arayüz gibi taşınamayan başlıklar matriste
 - **Branches → default:** `main`.
 - **Actions → General:** "Allow all actions" yeterli; ek secret gerekmez.
 - **Artifacts:** `conformance-audit` (rapor) ve `test-results-*` (JUnit).
-- Branch protection açıktır: `main`e doğrudan force-push ve silme kapalı,
-  zorunlu kontroller `test (ubuntu-latest, node 24.x)`,
+- Branch protection açıktır: `main`e doğrudan push, force-push ve silme kapalı
+  (adminler dahil). Zorunlu kontroller `test (ubuntu-latest, node 24.x)`,
   `test (windows-latest, node 24.x)`, `conformance audit` ve
-  `web panel smoke`. Kontroller PR üzerinde yeşil olmadan birleştirme yapılamaz.
+  `web panel smoke`; dördü yeşil olmadan PR birleştirilemez.
 
 ## Yerelde aynı kontroller
 
