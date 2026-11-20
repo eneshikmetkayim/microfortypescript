@@ -3,95 +3,125 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>MicroSIP · TypeScript kontrol paneli</title>
+    <title>microfort · operatör konsolu</title>
     <link rel="stylesheet" href="/style.css" />
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f766e'/%3E%3Cpath d='M18 20c0 14 12 26 26 26l6-8-10-6-4 4c-4-2-8-6-10-10l4-4-6-10-6 8z' fill='white'/%3E%3C/svg%3E" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2314110e'/%3E%3Crect x='6' y='7' width='4' height='18' fill='%23f5f2ec'/%3E%3Crect x='14' y='7' width='4' height='11' fill='%23f5f2ec'/%3E%3Crect x='22' y='7' width='4' height='18' fill='%23d7462a'/%3E%3C/svg%3E" />
   </head>
   <body>
-    <header class="topbar">
-      <div class="brand">
-        <span class="logo" aria-hidden="true">☎</span>
-        <div>
-          <strong>MicroSIP</strong>
-          <small>TypeScript portu · 3.23.5</small>
-        </div>
+    <header class="masthead">
+      <div class="wordmark">
+        <span class="mark" aria-hidden="true"></span>
+        <span class="name">microfort</span>
+        <span class="edition">operatör konsolu · 3.23.5</span>
       </div>
-      <div class="account" id="account">yükleniyor…</div>
-      <div class="pill" id="registration" data-state="unregistered">kayıtsız</div>
+      <div class="masthead-right">
+        <span class="account" id="account">—</span>
+        <span class="reg" id="registration" data-state="unregistered">
+          <i class="dot" aria-hidden="true"></i><span class="reg-text">kayıtsız</span>
+        </span>
+      </div>
     </header>
 
-    <main class="layout">
-      <section class="card dialer">
-        <h1>Ara</h1>
+    <main class="console">
+      <section class="dialer" aria-labelledby="dialer-title">
+        <div class="section-label">
+          <h1 id="dialer-title">Ara</h1>
+          <span class="hint">Enter ile bağlan</span>
+        </div>
+
         <input id="number" class="number" inputmode="tel" autocomplete="off"
-               placeholder="1002 veya sip:1002@pbx" aria-label="Aranacak numara" />
+               placeholder="—" aria-label="Aranacak numara" spellcheck="false" />
+
         <div class="pad" id="pad">
-          <button data-key="1">1</button>
-          <button data-key="2">2<small>ABC</small></button>
-          <button data-key="3">3<small>DEF</small></button>
-          <button data-key="4">4<small>GHI</small></button>
-          <button data-key="5">5<small>JKL</small></button>
-          <button data-key="6">6<small>MNO</small></button>
-          <button data-key="7">7<small>PQRS</small></button>
-          <button data-key="8">8<small>TUV</small></button>
-          <button data-key="9">9<small>WXYZ</small></button>
-          <button data-key="*">*</button>
-          <button data-key="0">0<small>+</small></button>
-          <button data-key="#">#</button>
+          <button data-key="1"><b>1</b></button>
+          <button data-key="2"><b>2</b><small>ABC</small></button>
+          <button data-key="3"><b>3</b><small>DEF</small></button>
+          <button data-key="4"><b>4</b><small>GHI</small></button>
+          <button data-key="5"><b>5</b><small>JKL</small></button>
+          <button data-key="6"><b>6</b><small>MNO</small></button>
+          <button data-key="7"><b>7</b><small>PQRS</small></button>
+          <button data-key="8"><b>8</b><small>TUV</small></button>
+          <button data-key="9"><b>9</b><small>WXYZ</small></button>
+          <button data-key="*"><b>✳</b><small> </small></button>
+          <button data-key="0"><b>0</b><small>+</small></button>
+          <button data-key="#"><b>#</b><small> </small></button>
         </div>
-        <div class="actions">
-          <button id="call" class="primary">Ara</button>
-          <button id="answer">Cevapla</button>
-          <button id="hangup" class="danger">Kapat</button>
+
+        <div class="dial-actions">
+          <button id="call" class="btn btn-solid">Ara</button>
+          <button id="answer" class="btn">Cevapla</button>
+          <button id="hangup" class="btn btn-signal">Kapat</button>
         </div>
-        <div class="subactions">
-          <button id="hold">Beklet</button>
-          <button id="transfer">Transfer</button>
-          <button id="hangupAll">Tümünü kapat</button>
+
+        <div class="utility">
+          <button id="hold" class="link">Beklet</button>
+          <button id="transfer" class="link">Transfer</button>
+          <button id="hangupAll" class="link">Tümünü kapat</button>
         </div>
-        <label class="field">
-          <span>DTMF</span>
-          <div class="inline">
+
+        <label class="dtmf">
+          <span class="section-label"><span>DTMF</span></span>
+          <span class="dtmf-row">
             <input id="dtmf" inputmode="numeric" placeholder="123#" />
-            <button id="sendDtmf">Gönder</button>
-          </div>
+            <button id="sendDtmf" class="btn btn-quiet">Gönder</button>
+          </span>
         </label>
+
+        <pre class="meta" id="meta"></pre>
       </section>
 
-      <section class="card">
-        <div class="card-head">
-          <h2>Aktif çağrılar</h2>
-          <span class="muted" id="callCount">0</span>
+      <section class="board" aria-labelledby="board-title">
+        <div class="board-head">
+          <h2 id="board-title">Hatte</h2>
+          <span class="counter" id="callCount">0</span>
         </div>
         <div id="calls" class="calls">
-          <p class="empty">Şu anda çağrı yok.</p>
+          <div class="blank">
+            <strong>Hat boş.</strong>
+            <span>Numarayı yazıp <em>Ara</em>'ya basın. Gelen çağrı bu şeritte açılır; kayıt
+            satırı çağrı kapandığında geçmişe düşer.</span>
+          </div>
         </div>
 
-        <div class="card-head">
-          <h2>Çağrı geçmişi</h2>
-          <button id="refreshHistory" class="ghost">Yenile</button>
+        <div class="board-head board-head-history">
+          <h2>Kayıt</h2>
+          <button id="refreshHistory" class="link">Yenile</button>
         </div>
         <div class="table-wrap">
           <table>
             <thead>
-              <tr><th>Tür</th><th>Numara</th><th>Ad</th><th>Süre</th><th>Zaman</th><th>Bilgi</th></tr>
+              <tr>
+                <th class="col-type">Tür</th>
+                <th>Numara</th>
+                <th>Ad</th>
+                <th class="col-num">Süre</th>
+                <th class="col-time">Zaman</th>
+                <th class="col-info">Bilgi</th>
+              </tr>
             </thead>
             <tbody id="history">
-              <tr><td colspan="6" class="empty">Kayıt yok.</td></tr>
+              <tr><td colspan="6" class="blank">Kayıt yok.</td></tr>
             </tbody>
           </table>
         </div>
       </section>
 
-      <section class="card log-card">
-        <div class="card-head">
-          <h2>Olaylar</h2>
-          <button id="clearLog" class="ghost">Temizle</button>
+      <aside class="rail" aria-labelledby="rail-title">
+        <div class="board-head">
+          <h2 id="rail-title">Olay şeridi</h2>
+          <button id="clearLog" class="link">Temizle</button>
         </div>
         <ul id="events" class="events"></ul>
-        <div class="meta" id="meta"></div>
-      </section>
+        <p class="rail-note">Çağrı durumları, kayıt yenilemeleri ve <code>cmd*</code>
+        kancaları buraya düşer. Panel yalnızca bu makineden erişilebilir.</p>
+      </aside>
     </main>
+
+    <footer class="statusbar">
+      <span class="sig" id="lineState">hat · kayıtsız</span>
+      <span id="metaLine">MicroSIP 3.23.5 · yerel panel</span>
+      <time id="clock">--:--:--</time>
+    </footer>
 
     <script type="module" src="/app.js"></script>
   </body>
