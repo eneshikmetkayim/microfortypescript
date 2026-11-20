@@ -1,6 +1,6 @@
 {
   "name": "microfortypescript",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "MicroSIP 3.23.5 logic layer adapted to TypeScript (SIP stack, dialing, URL masks, call log) with 1:1 parity tests.",
   "license": "GPL-2.0-or-later",
