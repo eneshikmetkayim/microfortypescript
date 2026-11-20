@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MicroSIP · TypeScript kontrol paneli</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f766e'/%3E%3Cpath d='M18 20c0 14 12 26 26 26l6-8-10-6-4 4c-4-2-8-6-10-10l4-4-6-10-6 8z' fill='white'/%3E%3C/svg%3E" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo" aria-hidden="true">☎</span>
+        <div>
+          <strong>MicroSIP</strong>
+          <small>TypeScript portu · 3.23.5</small>
+        </div>
+      </div>
+      <div class="account" id="account">yükleniyor…</div>
+      <div class="pill" id="registration" data-state="unregistered">kayıtsız</div>
+    </header>
+
+    <main class="layout">
+      <section class="card dialer">
+        <h1>Ara</h1>
+        <input id="number" class="number" inputmode="tel" autocomplete="off"
+               placeholder="1002 veya sip:1002@pbx" aria-label="Aranacak numara" />
+        <div class="pad" id="pad">
+          <button data-key="1">1</button>
+          <button data-key="2">2<small>ABC</small></button>
+          <button data-key="3">3<small>DEF</small></button>
+          <button data-key="4">4<small>GHI</small></button>
+          <button data-key="5">5<small>JKL</small></button>
+          <button data-key="6">6<small>MNO</small></button>
+          <button data-key="7">7<small>PQRS</small></button>
+          <button data-key="8">8<small>TUV</small></button>
+          <button data-key="9">9<small>WXYZ</small></button>
+          <button data-key="*">*</button>
+          <button data-key="0">0<small>+</small></button>
+          <button data-key="#">#</button>
+        </div>
+        <div class="actions">
+          <button id="call" class="primary">Ara</button>
+          <button id="answer">Cevapla</button>
+          <button id="hangup" class="danger">Kapat</button>
+        </div>
+        <div class="subactions">
+          <button id="hold">Beklet</button>
+          <button id="transfer">Transfer</button>
+          <button id="hangupAll">Tümünü kapat</button>
+        </div>
+        <label class="field">
+          <span>DTMF</span>
+          <div class="inline">
+            <input id="dtmf" inputmode="numeric" placeholder="123#" />
+            <button id="sendDtmf">Gönder</button>
+          </div>
+        </label>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>Aktif çağrılar</h2>
+          <span class="muted" id="callCount">0</span>
+        </div>
+        <div id="calls" class="calls">
+          <p class="empty">Şu anda çağrı yok.</p>
+        </div>
+
+        <div class="card-head">
+          <h2>Çağrı geçmişi</h2>
+          <button id="refreshHistory" class="ghost">Yenile</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Tür</th><th>Numara</th><th>Ad</th><th>Süre</th><th>Zaman</th><th>Bilgi</th></tr>
+            </thead>
+            <tbody id="history">
+              <tr><td colspan="6" class="empty">Kayıt yok.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card log-card">
+        <div class="card-head">
+          <h2>Olaylar</h2>
+          <button id="clearLog" class="ghost">Temizle</button>
+        </div>
+        <ul id="events" class="events"></ul>
+        <div class="meta" id="meta"></div>
+      </section>
+    </main>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

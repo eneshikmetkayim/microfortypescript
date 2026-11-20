@@ -4,7 +4,13 @@ node_modules/
 data/
 audit-report.md
 audit-report.json
+test-results.xml
+config.json
+status.json
+panel.log
+microsip.ini
 coverage/
 .env
 
 tmp/
+panel.pid
