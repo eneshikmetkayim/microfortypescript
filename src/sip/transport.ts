@@ -133,6 +133,33 @@ export function createLoopbackPair(
   return { a, b, flush: () => hub.flush() };
 }
 
+/**
+ * Route-aware local address for a socket bound to the wildcard address.
+ * `0.0.0.0` in Via/Contact is unroutable, so ask the kernel which interface
+ * reaches the internet and use that address instead.
+ */
+export async function detectOutboundAddress(
+  family: "udp4" | "udp6" = "udp4",
+): Promise<string | undefined> {
+  const dgram = await import("node:dgram");
+  const probe = dgram.createSocket(family);
+  try {
+    await new Promise<void>((resolve, reject) => {
+      probe.once("error", reject);
+      probe.connect(53, family === "udp4" ? "8.8.8.8" : "2001:4860:4860::8888", () => {
+        probe.removeListener("error", reject);
+        resolve();
+      });
+    });
+    const address = probe.address().address;
+    return address === "0.0.0.0" || address === "::" ? undefined : address;
+  } catch {
+    return undefined;
+  } finally {
+    probe.close();
+  }
+}
+
 /** UDP transport (one datagram per SIP message), mirroring pjsua's UDP. */
 export class UdpTransport implements SipTransport {
   readonly kind = "udp" as const;
@@ -168,8 +195,14 @@ export class UdpTransport implements SipTransport {
         socket.bind(this.bindPort, this.bindHost, () => {
           socket.removeListener("error", reject);
           const addr = socket.address();
-          this.localAddress = `${addr.address}:${addr.port}`;
-          resolve();
+          const wildcard = addr.address === "0.0.0.0" || addr.address === "::";
+          const publish = wildcard
+            ? detectOutboundAddress(this.family).then((detected) => detected ?? addr.address)
+            : Promise.resolve(addr.address);
+          void publish.then((address) => {
+            this.localAddress = `${address}:${addr.port}`;
+            resolve();
+          });
         });
       });
     })();
