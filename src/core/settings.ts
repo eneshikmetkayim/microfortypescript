@@ -260,6 +260,7 @@ export function saveMicroSipSettings(settings: MicroSipSettings): string {
   ini.set("Settings", "accountId", settings.accountId);
   ini.set("Settings", "singleMode", settings.singleMode ? 1 : 0);
   ini.set("Settings", "audioCodecs", settings.audioCodecs);
+  ini.set("Settings", "maxConcurrentCalls", settings.maxConcurrentCalls);
   ini.set("Settings", "cmdOutgoingCall", settings.cmdOutgoingCall || undefined);
   ini.set("Settings", "cmdIncomingCall", settings.cmdIncomingCall || undefined);
   ini.set("Settings", "cmdCallRing", settings.cmdCallRing || undefined);

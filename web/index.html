@@ -19,6 +19,7 @@
         <span class="reg" id="registration" data-state="unregistered">
           <i class="dot" aria-hidden="true"></i><span class="reg-text">kayıtsız</span>
         </span>
+        <button id="openSetup" class="btn btn-quiet setup-open">Kurulum</button>
       </div>
     </header>
 
@@ -72,6 +73,14 @@
 
       <section class="board" aria-labelledby="board-title">
         <div class="board-head">
+          <h2>Gelen havuzu</h2>
+          <span class="counter" id="poolCount">0</span>
+        </div>
+        <div id="pool" class="pool">
+          <p class="pool-empty">Havuz boş. Çalan çağrılar sırayla burada bekler.</p>
+        </div>
+
+        <div class="board-head board-head-sub">
           <h2 id="board-title">Hatte</h2>
           <span class="counter" id="callCount">0</span>
         </div>
@@ -83,7 +92,7 @@
           </div>
         </div>
 
-        <div class="board-head board-head-history">
+        <div class="board-head board-head-sub">
           <h2>Kayıt</h2>
           <button id="refreshHistory" class="link">Yenile</button>
         </div>
@@ -122,6 +131,38 @@
       <span id="metaLine">MicroSIP 3.23.5 · yerel panel</span>
       <time id="clock">--:--:--</time>
     </footer>
+
+    <dialog id="setup" class="setup" aria-labelledby="setup-title">
+      <form id="setupForm">
+        <header class="setup-head">
+          <h2 id="setup-title">Hat kurulumu</h2>
+          <button type="button" class="link" id="setupClose">Kapat</button>
+        </header>
+        <div class="setup-grid">
+          <label>Hesap adı<input name="label" autocomplete="off" /></label>
+          <label>Sunucu<input name="server" autocomplete="off" placeholder="pbx.local" required /></label>
+          <label>Kullanıcı<input name="username" autocomplete="off" required /></label>
+          <label>Parola<input name="password" type="password" autocomplete="new-password" /></label>
+          <label>Görünen ad<input name="displayName" autocomplete="off" /></label>
+          <label>Taşıma
+            <select name="transport">
+              <option value="udp">udp</option>
+              <option value="tcp">tcp</option>
+              <option value="tls">tls</option>
+              <option value="ws">ws</option>
+              <option value="wss">wss</option>
+            </select>
+          </label>
+          <label class="wide">Dial plan<input name="dialPlan" autocomplete="off" placeholder="ör. 9xx · boş = filtre yok" /></label>
+          <label>Aynı anda çağrı<input name="maxConcurrentCalls" type="number" min="1" max="32" /></label>
+        </div>
+        <p class="setup-note" id="setupNote">Kaydedince microsip.ini güncellenir.</p>
+        <footer class="setup-actions">
+          <button type="button" class="btn btn-quiet" id="setupCancel">Vazgeç</button>
+          <button type="submit" class="btn btn-solid" id="setupSave">Kaydet ve bağlan</button>
+        </footer>
+      </form>
+    </dialog>
 
     <script type="module" src="/app.js"></script>
   </body>

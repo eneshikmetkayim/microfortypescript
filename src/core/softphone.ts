@@ -151,6 +151,17 @@ export class Softphone {
     this.started = false;
   }
 
+  /**
+   * Rebuilds the stack after the account was edited in place (setup panel).
+   * The transport is recreated because server/transport may have changed.
+   */
+  async restart(): Promise<void> {
+    const wasStarted = this.started;
+    await this.stop();
+    this.transport = this.options.transport ?? this.createTransport();
+    if (wasStarted) await this.start();
+  }
+
   async dial(destination: string): Promise<Call> {
     if (!this.stack) throw new Error("softphone is not started");
     const formatted = formatNumber(destination, {

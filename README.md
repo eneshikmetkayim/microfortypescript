@@ -56,6 +56,16 @@ Panel bilinçli olarak kartsız ve düz: kâğıt zemin, hairline çizgiler, tek
 rengi (hata/kapat) ve mono rakamlar. Üç kolon geniş ekranda yan yana, dar
 pencerede alt alta akar.
 
+- **Kurulum** (sağ üst): sunucu, kullanıcı, parola, taşıma, görünen ad, dial plan
+  ve eşzamanlı çağrı sayısını düzenler; kaydedince `microsip.ini` yerinde
+  güncellenir ve bağlantı alanları değiştiyse hat yeniden bağlanır. Parola hiçbir
+  yanıtta dönmez.
+- **Gelen havuzu**: çalan çağrılar başlangıç sırasına göre bekler; her satırdan
+  cevaplanır veya 486 ile reddedilir. Yanıtlanan çağrı “Hatte” bölümüne, süresiyle
+  birlikte geçer.
+- Panel yalnızca loopback'e bağlanır ve POST isteklerinde same-origin kontrolü
+  yapar; kurulum uç noktası farklı origin'den 403 döner.
+
 ### CLI
 
 | Komut | Açıklama |
