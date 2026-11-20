@@ -202,7 +202,7 @@ async function serve(): Promise<void> {
 
   const port = numFlag("port", 4173);
   const host = flag("host", "127.0.0.1");
-  const server = createControlServer(phone, { host, port });
+  const server = createControlServer(phone, { host, port, settingsPath: path });
   await server.listen();
   console.log(`microforts control panel: http://${host}:${server.port}`);
   console.log(`ini: ${path}  account: ${phone.account.username || "-"}@${phone.account.server || "-"}`);

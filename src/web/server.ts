@@ -6,15 +6,19 @@
  */
 
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { dirname, extname, join, normalize, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Softphone } from "../core/softphone.ts";
+import { saveMicroSipSettings } from "../core/settings.ts";
+import { applyConfig, type ConfigPatch, type SipTransportName } from "./config.ts";
 
 export interface ControlServerOptions {
   host?: string;
   port?: number;
   staticDir?: string;
+  /** microsip.ini written by the setup dialog; omit to disable editing. */
+  settingsPath?: string;
 }
 
 const CONTENT_TYPES: Record<string, string> = {
@@ -34,12 +38,14 @@ export class ControlServer {
   private readonly host: string;
   private readonly requestedPort: number;
   private readonly staticDir: string;
+  private readonly settingsPath: string | undefined;
   private readonly phone: Softphone;
 
   constructor(phone: Softphone, options: ControlServerOptions = {}) {
     this.phone = phone;
     this.host = options.host ?? "127.0.0.1";
     this.requestedPort = options.port ?? 4173;
+    this.settingsPath = options.settingsPath;
     this.staticDir =
       options.staticDir ??
       resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "web");
@@ -154,6 +160,30 @@ export class ControlServer {
       return;
     }
 
+    if (url.pathname === "/api/config" && method === "GET") {
+      const account = this.phone.account;
+      this.sendJson(response, 200, {
+        editable: Boolean(this.settingsPath),
+        iniPath: this.settingsPath ?? null,
+        account: {
+          id: account.id,
+          label: account.label,
+          server: account.server,
+          username: account.username,
+          displayName: account.displayName,
+          dialPlan: account.dialPlan,
+          transport: account.transport,
+          hasPassword: Boolean(account.password),
+        },
+        settings: {
+          maxConcurrentCalls: this.phone.settings.maxConcurrentCalls,
+          singleMode: this.phone.settings.singleMode,
+          audioCodecs: this.phone.settings.audioCodecs,
+        },
+      });
+      return;
+    }
+
     if (url.pathname === "/api/history" && method === "GET") {
       const limit = Number(url.searchParams.get("limit") ?? "100");
       const query = url.searchParams.get("q");
@@ -219,6 +249,24 @@ export class ControlServer {
         this.sendJson(response, 200, { ok: await this.phone.transfer(target, callId) });
         return;
       }
+      case "/api/config": {
+        if (!this.settingsPath) {
+          this.sendJson(response, 409, { error: "ini file is not writable in this mode" });
+          return;
+        }
+        const { restartRequired } = applyConfig(this.phone.settings, parseConfig(body));
+        await writeFile(this.settingsPath, saveMicroSipSettings(this.phone.settings), "utf8");
+        let restartError: string | undefined;
+        if (restartRequired) {
+          try {
+            await this.phone.restart();
+          } catch (error) {
+            restartError = error instanceof Error ? error.message : String(error);
+          }
+        }
+        this.sendJson(response, 200, { ok: true, restartRequired, restartError });
+        return;
+      }
       case "/api/command": {
         const input = String(body["input"] ?? "").trim();
         if (!input) {
@@ -273,6 +321,31 @@ export class ControlServer {
     });
     response.end(body);
   }
+}
+
+const TRANSPORTS: readonly SipTransportName[] = ["udp", "tcp", "tls", "ws", "wss"];
+
+function parseConfig(body: Record<string, unknown>): ConfigPatch {
+  const text = (key: string): string | undefined =>
+    typeof body[key] === "string" ? (body[key] as string) : undefined;
+  const patch: ConfigPatch = {
+    label: text("label"),
+    server: text("server"),
+    username: text("username"),
+    password: text("password"),
+    displayName: text("displayName"),
+    dialPlan: text("dialPlan"),
+  };
+  const transport = text("transport");
+  if (transport !== undefined && TRANSPORTS.includes(transport as SipTransportName)) {
+    patch.transport = transport as SipTransportName;
+  }
+  const concurrency = body["maxConcurrentCalls"];
+  if (typeof concurrency === "number") patch.maxConcurrentCalls = concurrency;
+  else if (typeof concurrency === "string" && concurrency.trim() !== "") {
+    patch.maxConcurrentCalls = Number(concurrency);
+  }
+  return patch;
 }
 
 async function readJson(request: IncomingMessage): Promise<Record<string, unknown>> {
