@@ -230,6 +230,13 @@ export function codecsOf(media: SdpMedia): Codec[] {
   return result;
 }
 
+/** `c=IN IP4 192.0.2.10` -> `192.0.2.10` (address only, as RTP targets need). */
+export function connectionAddress(connection: string | undefined): string | undefined {
+  if (!connection) return undefined;
+  const match = /^\s*IN\s+IP[46]\s+(\S+)/i.exec(connection);
+  return match ? match[1] : connection.trim();
+}
+
 export interface NegotiatedMedia {
   codecs: Codec[];
   dtmfPayloadType?: number;
@@ -254,7 +261,7 @@ export function negotiateAudio(offer: SdpSession, answer?: SdpSession): Negotiat
       dtmfPayloadType: offerCodecs.find((c) => c.name === "TELEPHONE-EVENT")?.payloadType,
       direction: mediaDirection(offerMedia),
       remotePort: offerMedia.port,
-      remoteAddress: offerMedia.connection ?? offer.connection,
+      remoteAddress: connectionAddress(offerMedia.connection ?? offer.connection),
     };
   }
 
@@ -275,7 +282,7 @@ export function negotiateAudio(offer: SdpSession, answer?: SdpSession): Negotiat
     dtmfPayloadType: common.find((c) => c.name === "TELEPHONE-EVENT")?.payloadType,
     direction: mediaDirection(answerMedia),
     remotePort: offerMedia.port,
-    remoteAddress: offerMedia.connection ?? offer.connection,
+    remoteAddress: connectionAddress(offerMedia.connection ?? offer.connection),
   };
 }
 

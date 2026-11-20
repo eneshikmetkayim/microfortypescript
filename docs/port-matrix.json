@@ -64,7 +64,7 @@
       "module": "src/sip/call.ts",
       "tests": ["tests/call.test.ts"],
       "status": "ported",
-      "notes": "States calling/early/connecting/confirmed/disconnected, hold, INFO DTMF, REFER."
+      "notes": "States calling/early/connecting/confirmed/disconnected, hold, RFC 4733 and INFO DTMF, REFER."
     },
     {
       "id": "sip.sdp",

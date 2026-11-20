@@ -240,7 +240,7 @@ export function loadMicroSipSettings(text: string): MicroSipSettings {
 /** Converts a MicroSIP account section into the SIP stack's AccountConfig. */
 export function toAccountConfig(
   account: MicroSipAccount,
-  settings?: Pick<MicroSipSettings, "audioCodecs">,
+  settings?: Pick<MicroSipSettings, "audioCodecs" | "dtmfMethod">,
 ): AccountConfig {
   const codecs = (account.audioCodecs ?? settings?.audioCodecs ?? DEFAULT_CODECS_ENABLED)
     .split(/\s+/)
@@ -263,6 +263,7 @@ export function toAccountConfig(
     hideCid: account.hideCid,
     voicemailNumber: account.voicemailNumber,
     audioCodecs: codecs,
+    dtmfMethod: settings?.dtmfMethod ?? 0,
   };
   return config;
 }

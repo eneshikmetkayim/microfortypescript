@@ -23,6 +23,7 @@ import { newBranch, newCallId } from "./transaction.ts";
 import type { RemoteTarget, SipTransport } from "./transport.ts";
 import type { AccountConfig } from "./registration.ts";
 import { parseNameAddr, parseSipUri, type SipUri } from "./uri.ts";
+import { RtpDtmfSender } from "./rtp.ts";
 import {
   buildAudioAnswer,
   buildAudioOffer,
@@ -48,15 +49,22 @@ export interface MediaSession {
   setDirection(direction: MediaDirection): void;
   close(): void;
   readonly negotiated: NegotiatedMedia | null;
+  /** Sends digits as RFC 4733 events; false when RTP DTMF is not possible. */
+  sendDtmf?(digits: string, durationMs?: number): Promise<boolean>;
 }
 
-/** Signalling-only media: real SDP, no RTP socket (documented in PARITY.md). */
+/**
+ * Signalling-only audio: real SDP, no audio RTP stream. DTMF is the exception —
+ * when the answer negotiates `telephone-event`, digits go out as RFC 4733 RTP
+ * events so trunks that ignore SIP INFO still register key presses.
+ */
 export class SdpOnlyMediaSession implements MediaSession {
   readonly kind = "sdp-only";
   readonly address: string;
   readonly port: number;
   private direction: MediaDirection = "sendrecv";
   private negotiation: NegotiatedMedia | null = null;
+  private dtmf: RtpDtmfSender | null = null;
   private readonly codecs: string[];
 
   constructor(options: { address?: string; port?: number; codecs?: string[] } = {}) {
@@ -97,8 +105,24 @@ export class SdpOnlyMediaSession implements MediaSession {
     this.direction = direction;
   }
 
+  async sendDtmf(digits: string, durationMs = 160): Promise<boolean> {
+    const negotiation = this.negotiation;
+    if (!negotiation?.dtmfPayloadType || !negotiation.remotePort || !negotiation.remoteAddress) {
+      return false;
+    }
+    if (!this.dtmf) {
+      const event = negotiation.codecs.find((codec) => codec.name === "TELEPHONE-EVENT");
+      this.dtmf = new RtpDtmfSender(
+        { address: negotiation.remoteAddress, port: negotiation.remotePort },
+        { payloadType: negotiation.dtmfPayloadType, clockRate: event?.clockRate ?? 8000 },
+      );
+    }
+    return this.dtmf.send(digits, durationMs);
+  }
+
   close(): void {
-    // No media resources owned by this session.
+    this.dtmf?.close();
+    this.dtmf = null;
   }
 }
 
@@ -579,6 +603,12 @@ export class Call {
 
   async sendDtmf(digits: string, duration = 160): Promise<void> {
     if (this.state !== "confirmed") return;
+    // dtmfMethod: 0 auto (RFC 4733 when negotiated), 1 SIP INFO only,
+    // 2 RFC 4733 preferred. Both RFC 4733 modes fall back to INFO.
+    const method = this.deps.account.dtmfMethod ?? 0;
+    if (method !== 1 && this.media.sendDtmf && this.media.negotiated?.dtmfPayloadType) {
+      if (await this.media.sendDtmf(digits, duration)) return;
+    }
     for (const digit of digits) {
       this.localCSeq += 1;
       const info = SipMessage.request("INFO", this.dialogRequestUri());

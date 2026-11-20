@@ -34,6 +34,8 @@ export interface AccountConfig {
   hideCid?: boolean;
   voicemailNumber?: string;
   audioCodecs?: string[];
+  /** 0 auto (RFC 4733 when negotiated), 1 SIP INFO, 2 RFC 4733 preferred. */
+  dtmfMethod?: number;
 }
 
 export interface RegistrationDeps {
