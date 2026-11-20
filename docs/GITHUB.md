@@ -35,9 +35,9 @@ git push origin v0.2.1
 | --- | --- |
 | `test` | Ubuntu + Windows / Node 24: `npm ci`, `tsc --noEmit`, tüm testler, JUnit artifact, CLI smoke (`version`, `init`, `config`) |
 | `conformance` | `npm run audit`: matris kanıtı + test paketi; `audit-report.md/json` artifact ve iş özeti |
-| `web` | Paneli başlatır, `/api/status` JSON'unu ve ana sayfa HTML'ini doğrular |
+| `web` | Paneli başlatır, `/api/status` JSON'unu ve ana sayfa HTML'ini doğrular; ardından `npm run smoke` gerçek UDP INVITE ile cevapla/reddet akışını ve geçmiş kayıtlarını sınar |
 
-Yeşil `conformance` işi "port edilen her modülün kaynağı ve testi var, testler
+Yeşil `conformance` işi "uyarlanan her modülün kaynağı ve testi var, testler
 geçiyor" anlamına gelir; medya/arayüz gibi taşınamayan başlıklar matriste
 `not-portable` olarak açıkça işaretlidir.
 
@@ -46,8 +46,10 @@ geçiyor" anlamına gelir; medya/arayüz gibi taşınamayan başlıklar matriste
 - **Branches → default:** `main`.
 - **Actions → General:** "Allow all actions" yeterli; ek secret gerekmez.
 - **Artifacts:** `conformance-audit` (rapor) ve `test-results-*` (JUnit).
-- Branch protection isteğe bağlıdır; zorunlu tutulacaksa `test` (ubuntu +
-  windows), `conformance audit` ve `web panel smoke` statüleri seçilebilir.
+- Branch protection açıktır: `main`e doğrudan force-push ve silme kapalı,
+  zorunlu kontroller `test (ubuntu-latest, node 24.x)`,
+  `test (windows-latest, node 24.x)`, `conformance audit` ve
+  `web panel smoke`. Kontroller PR üzerinde yeşil olmadan birleştirme yapılamaz.
 
 ## Yerelde aynı kontroller
 
@@ -55,6 +57,7 @@ geçiyor" anlamına gelir; medya/arayüz gibi taşınamayan başlıklar matriste
 npm ci
 npm run typecheck
 npm test
+npm run smoke
 npm run audit
 node src/cli.ts serve --ini microsip.ini   # paneli elle dene
 ```

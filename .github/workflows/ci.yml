@@ -103,6 +103,8 @@ jobs:
           done
           cat status.json
           curl -fsS http://127.0.0.1:4173/ | grep -q "MicroSIP"
+      - name: Incoming pool smoke (real INVITE)
+        run: npm run smoke
       - name: Show log
         if: always()
         run: cat panel.log || true
