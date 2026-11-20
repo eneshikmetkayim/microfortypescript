@@ -6,3 +6,5 @@ audit-report.md
 audit-report.json
 coverage/
 .env
+
+tmp/
