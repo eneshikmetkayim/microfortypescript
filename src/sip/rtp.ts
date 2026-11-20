@@ -128,11 +128,17 @@ export class RtpDtmfSender {
     const samplesPerStep = Math.round((this.clockRate * this.stepMs) / 1000);
     const steps = Math.max(1, Math.round(durationMs / this.stepMs));
 
-    const emit = (event: number, duration: number, marker: boolean, end: boolean) => {
+    const emit = (
+      event: number,
+      timestamp: number,
+      duration: number,
+      marker: boolean,
+      end: boolean,
+    ) => {
       const packet = buildDtmfPacket({
         payloadType: this.options.payloadType,
         sequence: this.sequence,
-        timestamp: this.timestamp,
+        timestamp,
         ssrc: this.ssrc,
         event,
         duration,
@@ -147,17 +153,18 @@ export class RtpDtmfSender {
     for (const event of events) {
       const start = this.timestamp;
       let duration = 0;
+      // RFC 4733 §2.5.1: every packet of an event carries the timestamp of the
+      // event start; only the duration grows while the digit is held.
       for (let step = 0; step < steps; step++) {
         duration += samplesPerStep;
-        emit(event, duration, step === 0, false);
-        this.timestamp = (start + duration) >>> 0;
+        emit(event, start, duration, step === 0, false);
         if (step + 1 < steps) await sleep(this.stepMs);
       }
       for (let index = 0; index < this.endPackets; index++) {
-        emit(event, duration, false, true);
+        emit(event, start, duration, false, true);
         if (index + 1 < this.endPackets) await sleep(this.stepMs);
       }
-      // Inter-digit gap (pjsua leaves a short pause between events).
+      // The next digit starts after this event's duration plus the inter-digit gap.
       this.timestamp = (start + duration + samplesPerStep) >>> 0;
       await sleep(this.stepMs);
     }
