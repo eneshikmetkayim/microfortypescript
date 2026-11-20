@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { loadMicroSipSettings, saveMicroSipSettings } from "../src/core/settings.ts";
-import { applyConfig } from "../src/web/config.ts";
+import { applyConfig, ConfigError } from "../src/web/config.ts";
 
 const INI = [
   "[Global]",
@@ -23,50 +23,99 @@ const INI = [
   "",
 ].join("\r\n");
 
-test("connection fields mark the stack for a reconnect", () => {
+const base = (extra = {}) => ({
+  accountId: 1,
+  accounts: [
+    {
+      id: 1,
+      label: "Ofis",
+      server: "pbx.example.com",
+      username: "1001",
+      password: "",
+      transport: "udp" as const,
+    },
+  ],
+  ...extra,
+});
+
+test("connection changes require a reconnect, cosmetic ones do not", () => {
   const settings = loadMicroSipSettings(INI);
-  const result = applyConfig(settings, { server: " sip.local ", username: "2002" });
-  assert.equal(result.restartRequired, true);
+  assert.equal(applyConfig(settings, base({ accounts: [{ ...base().accounts[0], server: "sip.local" }] })).restartRequired, true);
   assert.equal(settings.account.server, "sip.local");
-  assert.equal(settings.account.username, "2002");
-  assert.equal(settings.accounts[0]?.server, "sip.local", "account list entry is updated too");
-});
 
-test("cosmetic fields do not force a reconnect", () => {
-  const settings = loadMicroSipSettings(INI);
-  const result = applyConfig(settings, { label: "Santral", displayName: "Operatör", dialPlan: "9xx" });
-  assert.equal(result.restartRequired, false);
+  assert.equal(
+    applyConfig(settings, base({ accounts: [{ ...base().accounts[0], server: "sip.local", label: "Santral" }] }))
+      .restartRequired,
+    false,
+  );
   assert.equal(settings.account.label, "Santral");
-  assert.equal(settings.account.dialPlan, "9xx");
 });
 
-test("empty password keeps the stored secret and never clears it", () => {
+test("adds a second sip user with the next free id and persists it", () => {
   const settings = loadMicroSipSettings(INI);
-  const result = applyConfig(settings, { password: "" });
-  assert.equal(result.restartRequired, false);
-  assert.equal(settings.account.password, "secret");
-});
+  const result = applyConfig(
+    settings,
+    base({
+      maxConcurrentCalls: 2,
+      accounts: [
+        base().accounts[0],
+        { label: "Destek", server: "pbx.example.com", username: "2002", password: "p2", transport: "tcp" },
+      ],
+    }),
+  );
+  assert.equal(result.restartRequired, true);
+  assert.equal(settings.accounts.length, 2);
+  assert.equal(settings.accounts[1]?.id, 2);
+  assert.equal(settings.accounts[1]?.username, "2002");
+  assert.equal(settings.maxConcurrentCalls, 2);
 
-test("transport is validated and concurrency is clamped", () => {
-  const settings = loadMicroSipSettings(INI);
-  applyConfig(settings, { transport: "breach" as never, maxConcurrentCalls: 99 });
-  assert.equal(settings.account.transport, "udp");
-  assert.equal(settings.maxConcurrentCalls, 32);
-  assert.equal(applyConfig(settings, { transport: "tls" }).restartRequired, true);
-  assert.equal(settings.account.transport, "tls");
-});
-
-test("saving keeps unknown ini keys from the Windows build", () => {
-  const settings = loadMicroSipSettings(INI);
-  applyConfig(settings, { username: "1002" });
   const text = saveMicroSipSettings(settings);
-  assert.match(text, /hidecid=1/);
-  assert.match(text, /cmdIncomingCall=http:\/\/crm\.local\/hook/i);
-  assert.match(text, /username=1002/);
+  assert.match(text, /\[account2\]/i);
+  assert.match(text, /username=2002/);
+  assert.match(text, /maxConcurrentCalls=2/i);
+  assert.match(text, /hidecid=1/, "unknown ini keys survive");
 });
 
-test("saving persists the concurrency limit the setup form edits", () => {
+test("switches the active user and removes a deleted one", () => {
   const settings = loadMicroSipSettings(INI);
-  applyConfig(settings, { maxConcurrentCalls: 3 });
-  assert.match(saveMicroSipSettings(settings), /maxConcurrentCalls=3/i);
+  applyConfig(
+    settings,
+    base({
+      accounts: [
+        base().accounts[0],
+        { label: "Destek", server: "pbx.example.com", username: "2002", password: "p2", transport: "udp" },
+      ],
+    }),
+  );
+  applyConfig(settings, {
+    accountId: 2,
+    maxConcurrentCalls: 1,
+    accounts: [
+      { id: 1, server: "pbx.example.com", username: "1001" },
+      { id: 2, server: "pbx.example.com", username: "2002" },
+    ],
+  });
+  assert.equal(settings.accountId, 2);
+  assert.equal(settings.account.username, "2002");
+  assert.equal(settings.account.password, "p2", "empty password keeps the stored one");
+
+  const removed = applyConfig(settings, {
+    accountId: 1,
+    maxConcurrentCalls: 1,
+    accounts: [{ id: 1, server: "pbx.example.com", username: "1001" }],
+  });
+  assert.equal(removed.restartRequired, true);
+  assert.equal(settings.accounts.length, 1);
+  assert.doesNotMatch(saveMicroSipSettings(settings), /account2/i);
+});
+
+test("rejects incomplete users and unknown active ids", () => {
+  const settings = loadMicroSipSettings(INI);
+  assert.throws(
+    () => applyConfig(settings, { accountId: 1, accounts: [{ id: 1, server: "", username: "1001" }] }),
+    ConfigError,
+  );
+  assert.throws(() => applyConfig(settings, { accountId: 9, accounts: base().accounts }), ConfigError);
+  assert.throws(() => applyConfig(settings, { accountId: 1, accounts: [] }), ConfigError);
+  assert.equal(settings.accounts.length, 1, "a rejected patch leaves the model untouched");
 });

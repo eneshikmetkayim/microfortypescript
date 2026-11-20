@@ -10,9 +10,15 @@ const setup = $("#setup");
 const setupForm = $("#setupForm");
 const setupNote = $("#setupNote");
 const setupSave = $("#setupSave");
+const wizardNext = $("#wizardNext");
+const wizardBack = $("#wizardBack");
+const accountList = $("#accountList");
 
 const TITLE = "microfort · operatör konsolu";
+const STEPS = { 1: "Hesap", 2: "Kimlik", 3: "Kullanıcılar" };
 const state = { status: null, calls: new Map() };
+const wizard = { step: 1, accountId: 1, accounts: [], maxConcurrentCalls: 1, editable: false };
+let autoSetupOpened = false;
 
 const TYPE_LABEL = { 0: "giden", 1: "gelen", 2: "cevapsız", 3: "başka yerde" };
 const STATE_LABEL = {
@@ -230,6 +236,10 @@ async function loadStatus() {
   setRegistration(status.registration);
   renderAll();
   renderHistory(status.history);
+  if (!autoSetupOpened && (!status.account.server || !status.account.username)) {
+    autoSetupOpened = true;
+    void openSetup();
+  }
 }
 
 async function act(action, callId) {
@@ -341,38 +351,133 @@ $("#clearLog").addEventListener("click", () => {
   eventsList.innerHTML = "";
 });
 
-// --------------------------------------------------------------------- setup
+// -------------------------------------------------------------------- wizard
 
-function fillSetup(config) {
-  const form = setupForm.elements;
-  const values = {
-    label: config.account.label,
-    server: config.account.server,
-    username: config.account.username,
-    displayName: config.account.displayName,
-    dialPlan: config.account.dialPlan,
-    transport: config.account.transport,
-    maxConcurrentCalls: config.settings.maxConcurrentCalls,
-  };
-  for (const [name, value] of Object.entries(values)) {
-    const field = form.namedItem(name);
-    if (field) field.value = value ?? "";
-  }
-  const password = form.namedItem("password");
+const field = (name) => setupForm.elements.namedItem(name);
+
+function activeAccount() {
+  return wizard.accounts.find((account) => account.id === wizard.accountId);
+}
+
+function fillActiveFields() {
+  const account = activeAccount();
+  if (!account) return;
+  field("label").value = account.label;
+  field("server").value = account.server;
+  field("username").value = account.username;
+  field("displayName").value = account.displayName ?? "";
+  field("dialPlan").value = account.dialPlan ?? "";
+  field("maxConcurrentCalls").value = String(wizard.maxConcurrentCalls);
+  const transport = setupForm.querySelector(`input[name="transport"][value="${account.transport}"]`);
+  if (transport) transport.checked = true;
+
+  const password = field("password");
   password.value = "";
-  password.placeholder = config.account.hasPassword ? "kayıtlı · boş bırak" : "parola";
+  password.placeholder = account.hasPassword || account.password ? "kayıtlı · boş bırak" : "parola";
+}
 
-  setupSave.disabled = !config.editable;
-  setupNote.classList.remove("error");
-  setupNote.textContent = config.editable
-    ? `Hesap ${config.account.id} · ${config.iniPath} · parola düz metin olarak ini dosyasına yazılır.`
-    : "Bu oturumda ini dosyası düzenlenemiyor.";
+function syncActiveFields() {
+  const account = activeAccount();
+  if (!account) return;
+  account.label = field("label").value.trim();
+  account.server = field("server").value.trim();
+  account.username = field("username").value.trim();
+  account.displayName = field("displayName").value.trim();
+  account.dialPlan = field("dialPlan").value.trim();
+  const transport = setupForm.querySelector('input[name="transport"]:checked');
+  if (transport) account.transport = transport.value;
+
+  const password = field("password");
+  if (password.value) {
+    account.password = password.value;
+    account.hasPassword = true;
+    password.value = "";
+  }
+
+  const concurrency = Number(field("maxConcurrentCalls").value);
+  if (Number.isFinite(concurrency) && concurrency > 0) wizard.maxConcurrentCalls = concurrency;
+}
+
+function showStep(step) {
+  wizard.step = step;
+  for (const page of setupForm.querySelectorAll(".wizard-page")) {
+    page.hidden = Number(page.dataset.page) !== step;
+  }
+  for (const item of $("#wizardSteps").children) {
+    const index = Number(item.dataset.step);
+    item.classList.toggle("active", index === step);
+    item.classList.toggle("done", index < step);
+    if (index === step) item.setAttribute("aria-current", "step");
+    else item.removeAttribute("aria-current");
+  }
+  $("#setupStepLabel").textContent = `Adım ${step} / 3 · ${STEPS[step]}`;
+  wizardBack.hidden = step === 1;
+  wizardNext.hidden = step === 3;
+  setupSave.hidden = step !== 3;
+  if (step === 3) renderAccounts();
+}
+
+function validateStep(step) {
+  const page = setupForm.querySelector(`.wizard-page[data-page="${step}"]`);
+  for (const input of page.querySelectorAll("input[required]")) {
+    if (!input.value.trim()) {
+      input.reportValidity();
+      return false;
+    }
+  }
+  if (step === 3 && !activeAccount()) {
+    setNote("Etkin bir kullanıcı seç.", true);
+    return false;
+  }
+  return true;
+}
+
+function setNote(text, error = false) {
+  setupNote.textContent = text;
+  setupNote.classList.toggle("error", error);
+}
+
+function renderAccounts() {
+  accountList.innerHTML = wizard.accounts
+    .map(
+      (account) => `<label class="account-row">
+        <input type="radio" name="activeAccount" value="${account.id}" ${
+          account.id === wizard.accountId ? "checked" : ""
+        } />
+        <span class="account-name">${escapeHtml(account.label || account.username)}
+          <small>${escapeHtml(account.username)}@${escapeHtml(account.server)} · ${account.transport}${
+            account.hasPassword || account.password ? " · parola var" : ""
+          }</small>
+        </span>
+        ${
+          account.id === wizard.accountId
+            ? '<span class="account-active">etkin</span>'
+            : `<button type="button" class="link" data-remove="${account.id}">Sil</button>`
+        }
+      </label>`,
+    )
+    .join("");
 }
 
 async function openSetup() {
   try {
-    fillSetup(await api("/api/config"));
-    setup.showModal();
+    const config = await api("/api/config");
+    wizard.editable = config.editable;
+    wizard.accountId = config.accountId;
+    wizard.accounts = config.accounts.map((account) => ({ ...account, password: "" }));
+    wizard.maxConcurrentCalls = config.settings.maxConcurrentCalls;
+    fillActiveFields();
+    renderAccounts();
+    showStep(1);
+    setupSave.disabled = !config.editable;
+    setNote(
+      config.editable
+        ? `${config.iniPath} · parola düz metin olarak ini dosyasına yazılır.`
+        : "Bu oturumda ini dosyası düzenlenemiyor.",
+      !config.editable,
+    );
+    if (!setup.open) setup.showModal();
+    field("label").focus();
   } catch (error) {
     log(`kurulum yüklenemedi: ${error.message}`, "error");
   }
@@ -380,25 +485,106 @@ async function openSetup() {
 
 $("#openSetup").addEventListener("click", openSetup);
 $("#setupClose").addEventListener("click", () => setup.close());
-$("#setupCancel").addEventListener("click", () => setup.close());
 setup.addEventListener("click", (event) => {
   if (event.target === setup) setup.close();
 });
 
+wizardNext.addEventListener("click", () => {
+  if (!validateStep(wizard.step)) return;
+  syncActiveFields();
+  showStep(wizard.step + 1);
+});
+
+wizardBack.addEventListener("click", () => {
+  syncActiveFields();
+  showStep(wizard.step - 1);
+});
+
+accountList.addEventListener("change", (event) => {
+  const radio = event.target.closest('input[name="activeAccount"]');
+  if (!radio) return;
+  syncActiveFields();
+  wizard.accountId = Number(radio.value);
+  fillActiveFields();
+  renderAccounts();
+});
+
+accountList.addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-remove]");
+  if (!button) return;
+  event.preventDefault();
+  if (wizard.accounts.length <= 1) {
+    setNote("En az bir kullanıcı kalmalı.", true);
+    return;
+  }
+  const id = Number(button.dataset.remove);
+  syncActiveFields();
+  wizard.accounts = wizard.accounts.filter((account) => account.id !== id);
+  if (wizard.accountId === id) wizard.accountId = wizard.accounts[0].id;
+  fillActiveFields();
+  renderAccounts();
+  setNote("Kullanıcı listeden çıkarıldı; kaydedince ini dosyasından silinir.");
+});
+
+$("#addAccount").addEventListener("click", () => {
+  const username = field("newUsername").value.trim();
+  const server = field("newServer").value.trim();
+  if (!username || !server) {
+    setNote("Yeni kullanıcı için sunucu ve kullanıcı adı gerekli.", true);
+    return;
+  }
+  syncActiveFields();
+  const id = Math.max(0, ...wizard.accounts.map((account) => account.id)) + 1;
+  wizard.accounts.push({
+    id,
+    label: field("newLabel").value.trim() || username,
+    server,
+    username,
+    password: field("newPassword").value,
+    displayName: "",
+    dialPlan: "",
+    transport: "udp",
+    hasPassword: Boolean(field("newPassword").value),
+  });
+  wizard.accountId = id;
+  for (const name of ["newLabel", "newUsername", "newServer", "newPassword"]) field(name).value = "";
+  fillActiveFields();
+  renderAccounts();
+  setNote(`${username} eklendi ve etkin kullanıcı yapıldı. Taşımayı Hesap adımında seçebilirsin.`);
+});
+
 setupForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  const data = Object.fromEntries(new FormData(setupForm));
-  data.maxConcurrentCalls = Number(data.maxConcurrentCalls);
+  if (wizard.step !== 3) {
+    if (!validateStep(wizard.step)) return;
+    syncActiveFields();
+    showStep(wizard.step + 1);
+    return;
+  }
+  syncActiveFields();
+  if (!validateStep(3)) return;
   setupSave.disabled = true;
   try {
-    const result = await api("/api/config", data);
+    const result = await api("/api/config", {
+      accountId: wizard.accountId,
+      maxConcurrentCalls: wizard.maxConcurrentCalls,
+      accounts: wizard.accounts.map((account) => ({
+        id: account.id > 0 ? account.id : 0,
+        label: account.label,
+        server: account.server,
+        username: account.username,
+        password: account.password ?? "",
+        displayName: account.displayName ?? "",
+        dialPlan: account.dialPlan ?? "",
+        transport: account.transport,
+      })),
+    });
     setup.close();
     log(result.restartRequired ? "kurulum kaydedildi · hat yeniden bağlanıyor" : "kurulum kaydedildi");
     if (result.restartError) log(`yeniden bağlanma hatası: ${result.restartError}`, "error");
     await loadStatus();
   } catch (error) {
-    setupNote.textContent = error.message;
-    setupNote.classList.add("error");
+    setNote(error.message, true);
   } finally {
     setupSave.disabled = false;
   }

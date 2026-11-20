@@ -11,7 +11,13 @@ import { dirname, extname, join, normalize, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Softphone } from "../core/softphone.ts";
 import { saveMicroSipSettings } from "../core/settings.ts";
-import { applyConfig, type ConfigPatch, type SipTransportName } from "./config.ts";
+import {
+  applyConfig,
+  ConfigError,
+  type AccountInput,
+  type ConfigPatch,
+  type SipTransportName,
+} from "./config.ts";
 
 export interface ControlServerOptions {
   host?: string;
@@ -161,20 +167,22 @@ export class ControlServer {
     }
 
     if (url.pathname === "/api/config" && method === "GET") {
-      const account = this.phone.account;
       this.sendJson(response, 200, {
         editable: Boolean(this.settingsPath),
         iniPath: this.settingsPath ?? null,
-        account: {
-          id: account.id,
-          label: account.label,
-          server: account.server,
-          username: account.username,
-          displayName: account.displayName,
-          dialPlan: account.dialPlan,
-          transport: account.transport,
-          hasPassword: Boolean(account.password),
-        },
+        accountId: this.phone.settings.accountId,
+        accounts: this.phone.settings.accounts
+          .filter((account) => account.id > 0)
+          .map((account) => ({
+            id: account.id,
+            label: account.label,
+            server: account.server,
+            username: account.username,
+            displayName: account.displayName,
+            dialPlan: account.dialPlan,
+            transport: account.transport,
+            hasPassword: Boolean(account.password),
+          })),
         settings: {
           maxConcurrentCalls: this.phone.settings.maxConcurrentCalls,
           singleMode: this.phone.settings.singleMode,
@@ -254,17 +262,25 @@ export class ControlServer {
           this.sendJson(response, 409, { error: "ini file is not writable in this mode" });
           return;
         }
-        const { restartRequired } = applyConfig(this.phone.settings, parseConfig(body));
-        await writeFile(this.settingsPath, saveMicroSipSettings(this.phone.settings), "utf8");
-        let restartError: string | undefined;
-        if (restartRequired) {
-          try {
-            await this.phone.restart();
-          } catch (error) {
-            restartError = error instanceof Error ? error.message : String(error);
+        try {
+          const { restartRequired } = applyConfig(this.phone.settings, parseConfig(body));
+          await writeFile(this.settingsPath, saveMicroSipSettings(this.phone.settings), "utf8");
+          let restartError: string | undefined;
+          if (restartRequired) {
+            try {
+              await this.phone.restart();
+            } catch (error) {
+              restartError = error instanceof Error ? error.message : String(error);
+            }
           }
+          this.sendJson(response, 200, { ok: true, restartRequired, restartError });
+        } catch (error) {
+          if (error instanceof ConfigError) {
+            this.sendJson(response, 400, { error: error.message });
+            return;
+          }
+          throw error;
         }
-        this.sendJson(response, 200, { ok: true, restartRequired, restartError });
         return;
       }
       case "/api/command": {
@@ -325,27 +341,43 @@ export class ControlServer {
 
 const TRANSPORTS: readonly SipTransportName[] = ["udp", "tcp", "tls", "ws", "wss"];
 
-function parseConfig(body: Record<string, unknown>): ConfigPatch {
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function parseAccount(value: unknown): AccountInput {
+  const source = isRecord(value) ? value : {};
   const text = (key: string): string | undefined =>
-    typeof body[key] === "string" ? (body[key] as string) : undefined;
-  const patch: ConfigPatch = {
+    typeof source[key] === "string" ? (source[key] as string) : undefined;
+  const transport = text("transport");
+  return {
+    id: typeof source["id"] === "number" ? source["id"] : 0,
     label: text("label"),
     server: text("server"),
     username: text("username"),
     password: text("password"),
     displayName: text("displayName"),
     dialPlan: text("dialPlan"),
+    transport:
+      transport !== undefined && TRANSPORTS.includes(transport as SipTransportName)
+        ? (transport as SipTransportName)
+        : undefined,
   };
-  const transport = text("transport");
-  if (transport !== undefined && TRANSPORTS.includes(transport as SipTransportName)) {
-    patch.transport = transport as SipTransportName;
-  }
+}
+
+function parseConfig(body: Record<string, unknown>): ConfigPatch {
+  const accounts = Array.isArray(body["accounts"]) ? body["accounts"].map(parseAccount) : [];
   const concurrency = body["maxConcurrentCalls"];
-  if (typeof concurrency === "number") patch.maxConcurrentCalls = concurrency;
-  else if (typeof concurrency === "string" && concurrency.trim() !== "") {
-    patch.maxConcurrentCalls = Number(concurrency);
-  }
-  return patch;
+  return {
+    accountId: Number(body["accountId"]),
+    accounts,
+    maxConcurrentCalls:
+      typeof concurrency === "number"
+        ? concurrency
+        : typeof concurrency === "string" && concurrency.trim() !== ""
+          ? Number(concurrency)
+          : undefined,
+  };
 }
 
 async function readJson(request: IncomingMessage): Promise<Record<string, unknown>> {
