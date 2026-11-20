@@ -1,6 +1,6 @@
 # microfortypescript
 
-MicroSIP **3.23.5**'in mantık katmanının sıfırdan **TypeScript** portu. Ayrı bir
+MicroSIP **3.23.5**'in mantık katmanının sıfırdan **TypeScript** uyarlaması. Ayrı bir
 projedir: `loki-crm-next` içine gömülü değildir, çalışması için bir santral
 (PBX) gerektirmez ve testleri tamamen kendi içinde (loopback SIP) döner.
 
@@ -39,6 +39,7 @@ Next.js içine taşınamaz. Bu repo, MicroSIP'in **davranışını** taşır:
 npm ci
 npm run typecheck
 npm test          # 99+ test, ~2 sn
+npm run smoke     # paneli başlatıp gerçek SIP INVITE ile cevapla/reddet akışını sürer
 npm run audit     # conformance raporu (audit-report.md)
 
 node src/cli.ts init --path microsip.ini     # örnek ayar dosyası
@@ -83,7 +84,7 @@ pencerede alt alta akar.
 
 ## Kapsam ve doğrulama
 
-Her port edilen modül, MicroSIP kaynağındaki karşılığı ve testiyle
+Her uyarlanan modül, MicroSIP kaynağındaki karşılığı ve testiyle
 [`docs/port-matrix.json`](docs/port-matrix.json) dosyasında eşlenir. Audit bu
 matrisi çalışma ağacına karşı doğrular (kaynak var mı, test var mı, testler
 geçiyor mu) ve rapor üretir.
@@ -112,11 +113,14 @@ gibi gösterilmez, matriste `not-portable` olarak işaretlidir.
    artifact), CLI smoke testi
 2. **conformance** — `npm run audit`, matris + test kanıtı, `audit-report.md`
    artifact'ı ve iş özeti
-3. **web** — paneli başlatıp `/api/status` ve HTML yanıtını doğrular
+3. **web** — paneli başlatıp `/api/status` ve HTML yanıtını doğrular; ardından
+   gerçek UDP INVITE gönderen gelen havuzu smoke testi cevapla (200/ACK) ve
+   reddet (486) akışlarını, geçmişe `incoming` / `missed` olarak düşmelerini
+   kontrol eder
 
 Depoyu bağlama adımları: [`docs/GITHUB.md`](docs/GITHUB.md).
 
 ## Lisans
 
-MicroSIP GPL v2'dir; bu port onun türevi bir çalışmadır ve **GPL-2.0-or-later**
+MicroSIP GPL v2'dir; bu uyarlama onun türevi bir çalışmadır ve **GPL-2.0-or-later**
 altında dağıtılır. Ayrıntı: [`LICENSE`](LICENSE).

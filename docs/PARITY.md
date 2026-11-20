@@ -1,6 +1,6 @@
 # Birebir uygunluk (parity) yöntemi
 
-Bu belge, portun MicroSIP 3.23.5 ile **neyi aynı**, neyi bilinçli olarak farklı
+Bu belge, uyarlamanın MicroSIP 3.23.5 ile **neyi aynı**, neyi bilinçli olarak farklı
 yaptığını kaydeder. Her iddia bir test dosyasına veya kaynak satırına bağlıdır.
 
 ## 1. Kanıt zinciri
@@ -57,7 +57,7 @@ ulaştırır (`tests/helpers/uas.ts`). Mock'lanan şey ağ değil, ağın *karş
 
 | Konu | MicroSIP | Port | Neden |
 | --- | --- | --- | --- |
-| Dial plan değiştirme | `CString::Right()` ile yeniden kurma (`global.cpp:170`) | Yakalama aralıkları `d` bayrağıyla yerinde birleştirilir | Upstream kodda `szPrev - ... - 1` hesabı belgelenen örneklerle çelişiyor; port belgelenen davranışı (`<8:1555>xxxxxxx` → `15551234567`) uygular ve test eder |
+| Dial plan değiştirme | `CString::Right()` ile yeniden kurma (`global.cpp:170`) | Yakalama aralıkları `d` bayrağıyla yerinde birleştirilir | Upstream kodda `szPrev - ... - 1` hesabı belgelenen örneklerle çelişiyor; uyarlama belgelenen davranışı (`<8:1555>xxxxxxx` → `15551234567`) uygular ve test eder |
 | 487 sonrası sebep | pjsua durum metni | yerel iptalde `Call cancelled` korunur | Kullanıcıya MicroSIP'in gösterdiği sebep gösterilir |
 | DNS | pjsua SRV/NAPTR | A kaydı / doğrudan host | SRV henüz yok (matriste `pending`) |
 | Medya | pjmedia aygıtları | `SdpOnlyMediaSession` (sinyalizasyon) | Node'da yerel ses aygıtı yok; WebRTC planlanıyor |
